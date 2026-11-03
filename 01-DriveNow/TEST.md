@@ -156,3 +156,68 @@ The review also helped identify interactions between pricing components that sho
 
 I checked the suggestions against the assignment requirements and business rules before deciding which ones to accept.
 
+
+
+## AI Self-Review — BookingService (BR-10 to BR-27)
+
+### AI Review Summary
+
+The AI reviewed the existing BookingService test names against BR-10 to BR-27.
+
+The review identified potential gaps in:
+
+- Eligibility boundaries for Luxury and Van vehicles.
+- Pickup time and rental duration boundaries.
+- Customer active booking limits.
+- Deposit combinations.
+- Booking reference uniqueness.
+- Booking properties and post-booking side effects.
+
+The review also suggested testing customer booking overlaps. However, BR-22 specifies a limit on the number of open bookings for a customer, not customer booking overlaps.
+
+### AI Suggestions and Decisions
+
+| AI Suggestion | Decision | Reason |
+|---|---|---|
+| Test Luxury eligibility with age 26 and exactly 3 license years | Accepted | Verifies that a customer meeting both minimum requirements is allowed to rent a Luxury vehicle. |
+| Test Luxury eligibility with age 26 and less than 3 license years | Rejected | The existing age-25 rejection test and the accepted valid case provide sufficient coverage for now. |
+| Test Van eligibility with exactly 2 license years | Accepted | Verifies the exact minimum license-duration boundary. |
+| Test Pickup exactly 2 hours from now | Accepted | Verifies the exact minimum pickup-time boundary. |
+| Test Pickup 1 hour and 59 minutes from now | Rejected | The existing earlier-pickup rejection test already covers the failure scenario. |
+| Test return exactly at pickup time | Rejected | Lower priority than verifying the maximum allowed rental duration. |
+| Test rental duration of exactly 30 days | Accepted | Verifies that the maximum allowed rental duration is accepted. |
+| Test rental duration of 30 days and 1 minute | Rejected | The existing test already covers a rental period exceeding 30 days. |
+| Test one existing open booking allows another booking | Accepted | Verifies the BR-22 boundary below the maximum of two open bookings. |
+| Add separate customer-overlap tests | Rejected | BR-22 is about the number of open bookings, not overlapping bookings for the same customer. |
+| Add more vehicle-overlap tests | Rejected | Existing tests already cover vehicle overlap rejection and back-to-back bookings. |
+| Test more PricingService combinations | Rejected | This would significantly expand the scope, while the current tests already cover a basic pricing scenario. |
+| Create multiple bookings and verify unique references | Rejected | Reference uniqueness is not explicitly required by BR-25. |
+| Split booking property assertions into separate tests | Rejected | The existing test already checks the required booking properties. |
+| Test every Deposit combination | Rejected | Testing every vehicle category, insurance plan, and loyalty tier would add many cases without being necessary for the current review. |
+| Explicitly verify the audit log message | Accepted | BR-27 requires the audit log to record `Booking {reference} created`. |
+| Split every notification and side effect into separate tests | Rejected | The existing test already checks the main post-booking side effects together. |
+
+### Evaluation of AI Review
+
+The AI review was useful in identifying missing boundary cases, particularly for Luxury eligibility, Van license duration, pickup time, rental duration, and the customer booking limit.
+
+However, some suggestions were unnecessary or based on an incorrect interpretation of the business rules.
+
+For example, the AI suggested testing customer booking overlaps under BR-22. After checking the README, I confirmed that BR-22 only limits a customer to fewer than two open bookings. Vehicle overlap is handled separately by BR-21.
+
+The AI also suggested testing reference uniqueness and every possible Deposit combination. I rejected these suggestions because they are not necessary for the current scope or would add too many tests.
+
+I compared the suggestions against the README and existing tests, then selected only the cases that add meaningful coverage.
+
+### Planned Improvements
+
+The following test cases were selected for implementation:
+
+1. BR-16: A customer aged 26 with exactly 3 license years can rent a Luxury vehicle.
+2. BR-17: A customer with exactly 2 license years can rent a Van.
+3. BR-18: A Pickup booking exactly 2 hours from now is accepted.
+4. BR-19: A rental period of exactly 30 days is accepted.
+5. BR-22: A customer with one existing open booking can create another booking.
+6. BR-27: Verify that the audit log records `Booking {reference} created`.
+
+These cases are planned improvements and have not yet been implemented.

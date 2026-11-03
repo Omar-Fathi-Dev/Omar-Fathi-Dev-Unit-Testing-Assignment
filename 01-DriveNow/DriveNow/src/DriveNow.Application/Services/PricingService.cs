@@ -22,15 +22,35 @@ public class PricingService
         _timeProvider = timeProvider;
     }
 
-    public PriceBreakdown Calculate(Customer customer, Vehicle vehicle, BookingRequest request)
+    public PriceBreakdown Calculate(
+        Customer customer,
+        Vehicle vehicle,
+        BookingRequest request)
     {
-        int days = RentalMath.CalculateRentalDays(request.PickupAt, request.ReturnAt);
-        decimal baseAmount = Round(vehicle.DailyRate * days);
-        decimal weekend = WeekendSurcharge(vehicle.DailyRate, request.PickupAt, days);
-        int age = RentalMath.CalculateAge(customer.DateOfBirth, request.PickupAt);
-        decimal young = age is >= 21 and <= 24 ? Round(baseAmount * 0.15m) : 0m;
+        int days = RentalMath.CalculateRentalDays(
+            request.PickupAt,
+            request.ReturnAt);
 
-        decimal durationPercent = days >= 14 ? 15m : days > 7 && days < 14 ? 10m : 0m;
+        decimal baseAmount = Round(vehicle.DailyRate * days);
+
+        decimal weekend = WeekendSurcharge(
+            vehicle.DailyRate,
+            request.PickupAt,
+            days);
+
+        int age = RentalMath.CalculateAge(
+            customer.DateOfBirth,
+            request.PickupAt);
+
+        decimal young = age is >= 21 and <= 24
+            ? Round(baseAmount * 0.15m)
+            : 0m;
+
+        decimal durationPercent = days >= 14
+            ? 15m
+            : days >= 7
+                ? 10m
+                : 0m;
 
         decimal loyaltyPercent = customer.LoyaltyTier switch
         {
@@ -43,20 +63,46 @@ public class PricingService
         if (durationPercent + loyaltyPercent > 25m)
             loyaltyPercent = 25m - durationPercent;
 
-        decimal durationDiscount = Round(baseAmount * durationPercent / 100m);
-        decimal loyaltyDiscount = Round(baseAmount * loyaltyPercent / 100m);
+        decimal durationDiscount = Round(
+            baseAmount * durationPercent / 100m);
+
+        decimal loyaltyDiscount = Round(
+            baseAmount * loyaltyPercent / 100m);
+
         decimal promoDiscount = PromoDiscount(
             request.PromoCode,
             days,
             vehicle.Category,
             baseAmount);
 
-        decimal insurance = InsuranceCost(request.InsurancePlan, vehicle.Category, days);
-        decimal drivers = DriverCost(customer.LoyaltyTier, request.AdditionalDrivers, days);
+        decimal maximumPromoDiscount = Round(
+            baseAmount * Math.Max(
+                0m,
+                25m - durationPercent - loyaltyPercent) / 100m);
+
+        promoDiscount = Math.Min(
+            promoDiscount,
+            maximumPromoDiscount);
+
+        decimal insurance = InsuranceCost(
+            request.InsurancePlan,
+            vehicle.Category,
+            days);
+
+        decimal drivers = DriverCost(
+            customer.LoyaltyTier,
+            request.AdditionalDrivers,
+            days);
 
         decimal total = Round(
-            baseAmount + weekend + young - durationDiscount
-            - loyaltyDiscount - promoDiscount + insurance + drivers);
+            baseAmount
+            + weekend
+            + young
+            - durationDiscount
+            - loyaltyDiscount
+            - promoDiscount
+            + insurance
+            + drivers);
 
         return new PriceBreakdown
         {
@@ -73,7 +119,10 @@ public class PricingService
         };
     }
 
-    private static decimal WeekendSurcharge(decimal dailyRate, DateTime pickup, int days)
+    private static decimal WeekendSurcharge(
+        decimal dailyRate,
+        DateTime pickup,
+        int days)
     {
         int weekendDays = 0;
 
@@ -81,8 +130,11 @@ public class PricingService
         {
             DateTime start = pickup.AddHours(k * 24);
 
-            if (start.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday)
+            if (start.DayOfWeek is DayOfWeek.Friday
+                or DayOfWeek.Saturday)
+            {
                 weekendDays++;
+            }
         }
 
         return Round(dailyRate * 0.20m * weekendDays);
@@ -98,27 +150,38 @@ public class PricingService
             return 0m;
 
         var promo = _promos.GetByCode(code)
-            ?? throw new InvalidPromoCodeException($"Promo code '{code}' does not exist");
+            ?? throw new InvalidPromoCodeException(
+                $"Promo code '{code}' does not exist");
 
         DateTime today = _timeProvider.GetLocalNow().Date;
 
         if (today < promo.ValidFrom || today > promo.ValidUntil)
-            throw new InvalidPromoCodeException($"Promo code '{code}' has expired");
+            throw new InvalidPromoCodeException(
+                $"Promo code '{code}' has expired");
 
         if (days < promo.MinDays)
-            throw new InvalidPromoCodeException($"Promo code '{code}' requires at least {promo.MinDays} days");
+            throw new InvalidPromoCodeException(
+                $"Promo code '{code}' requires at least {promo.MinDays} days");
 
         if (promo.AllowedCategories is not null
             && !promo.AllowedCategories.Contains(category))
-            throw new InvalidPromoCodeException($"Promo code '{code}' is not valid for {category}");
+        {
+            throw new InvalidPromoCodeException(
+                $"Promo code '{code}' is not valid for {category}");
+        }
 
         if (promo.UsedCount >= promo.MaxUses)
-            throw new InvalidPromoCodeException($"Promo code '{code}' has been fully used");
+            throw new InvalidPromoCodeException(
+                $"Promo code '{code}' has been fully used");
 
-        return Round(baseAmount * promo.DiscountPercent / 100m);
+        return Round(
+            baseAmount * promo.DiscountPercent / 100m);
     }
 
-    private static decimal InsuranceCost(InsurancePlan plan, VehicleCategory category, int days)
+    private static decimal InsuranceCost(
+        InsurancePlan plan,
+        VehicleCategory category,
+        int days)
     {
         decimal perDay = plan switch
         {
@@ -133,16 +196,22 @@ public class PricingService
         return Round(perDay * days);
     }
 
-    private static decimal DriverCost(LoyaltyTier tier, int additionalDrivers, int days)
+    private static decimal DriverCost(
+        LoyaltyTier tier,
+        int additionalDrivers,
+        int days)
     {
         int billable = additionalDrivers;
 
-        if (tier >= LoyaltyTier.Silver && billable > 0)
+        if (tier >= LoyaltyTier.Gold && billable > 0)
             billable--;
 
         return Round(100m * billable * days);
     }
 
     private static decimal Round(decimal amount) =>
-        Math.Round(amount, 2, MidpointRounding.AwayFromZero);
+        Math.Round(
+            amount,
+            2,
+            MidpointRounding.AwayFromZero);
 }

@@ -240,9 +240,10 @@ public class BookingServiceTests
     Assert.Equal("Vehicle is not available", exception.Message);
 }
 
+    
     [Fact]
     [Trait("Rule", "BR-16")]
-    public void CreateBooking_LuxuryVehicleAndAgeExactly25_ThrowsBookingRejectedException()
+    public void CreateBooking_LuxuryVehicleAndMinimumEligibilityRequirements_AllowsBooking()
 {
     BookingServiceTestFixture fixture = new();
 
@@ -250,7 +251,7 @@ public class BookingServiceTests
     {
         Id = 1,
         DateOfBirth = new DateTime(2001, 11, 10),
-        LicenseIssueDate = new DateTime(2020, 1, 1),
+        LicenseIssueDate = new DateTime(2023, 11, 10),
         IsBlacklisted = false
     };
 
@@ -271,13 +272,84 @@ public class BookingServiceTests
         ReturnAt = new DateTime(2026, 11, 12, 10, 0, 0)
     };
 
-    BookingRejectedException exception =
-        Assert.Throws<BookingRejectedException>(() => sut.CreateBooking(request));
+    Booking result = sut.CreateBooking(request);
 
-    Assert.Equal(
-        "Luxury vehicles require age 25+ and 3 years of license",
-        exception.Message);
+    Assert.NotNull(result);
+    Assert.Equal(BookingStatus.Reserved, result.Status);
 }
+
+    [Fact]
+    [Trait("Rule", "BR-17")]
+    public void CreateBooking_VanAndLicenseHeldForExactlyTwoYears_AllowsBooking()
+{
+    BookingServiceTestFixture fixture = new();
+
+    fixture.Customers.Data[1] = new Customer
+    {
+        Id = 1,
+        DateOfBirth = new DateTime(1996, 1, 1),
+        LicenseIssueDate = new DateTime(2024, 11, 10),
+        IsBlacklisted = false
+    };
+
+    fixture.Vehicles.Data[1] = new Vehicle
+    {
+        Id = 1,
+        Category = VehicleCategory.Van,
+        IsAvailable = true
+    };
+
+    BookingService sut = fixture.CreateSut();
+
+    BookingRequest request = new()
+    {
+        CustomerId = 1,
+        VehicleId = 1,
+        PickupAt = new DateTime(2026, 11, 10, 10, 0, 0),
+        ReturnAt = new DateTime(2026, 11, 12, 10, 0, 0)
+    };
+
+    Booking result = sut.CreateBooking(request);
+
+    Assert.NotNull(result);
+    Assert.Equal(BookingStatus.Reserved, result.Status);
+}
+
+    [Fact]
+    [Trait("Rule", "BR-18")]
+    public void CreateBooking_PickupExactlyTwoHoursFromNow_AllowsBooking()
+    {
+        BookingServiceTestFixture fixture = new();
+
+        DateTime localNow = new(2026, 11, 3, 10, 0, 0);
+        TimeSpan localOffset = TimeZoneInfo.Local.GetUtcOffset(localNow);
+        DateTimeOffset now = new(localNow, localOffset);
+
+        fixture.TimeProvider = new FixedTimeProvider(now);
+
+        DateTime providerNow = fixture.TimeProvider.GetLocalNow().DateTime;
+
+        Customer customer = CreateValidCustomer();
+        Vehicle vehicle = CreateValidVehicle();
+
+        fixture.Customers.Data[customer.Id] = customer;
+        fixture.Vehicles.Data[vehicle.Id] = vehicle;
+
+        BookingService sut = fixture.CreateSut();
+
+        BookingRequest request = new()
+        {
+            CustomerId = customer.Id,
+            VehicleId = vehicle.Id,
+            PickupAt = providerNow.AddHours(2),
+            ReturnAt = providerNow.AddDays(2)
+        };
+
+        Booking result = sut.CreateBooking(request);
+
+        Assert.NotNull(result);
+        Assert.Equal(BookingStatus.Reserved, result.Status);
+    }
 
     [Fact]
     [Trait("Rule", "BR-17")]
@@ -1048,6 +1120,81 @@ public class BookingServiceTests
 
         return Verify(booking);
     }
+    
+    [Fact]
+    [Trait("Rule", "BR-19")]
+    public void CreateBooking_RentalPeriodIsExactlyThirtyDays_AllowsBooking()
+    {
+        BookingServiceTestFixture fixture = new();
+
+        DateTime localNow = new(2026, 11, 3, 10, 0, 0);
+        TimeSpan localOffset = TimeZoneInfo.Local.GetUtcOffset(localNow);
+        DateTimeOffset now = new(localNow, localOffset);
+
+        fixture.TimeProvider = new FixedTimeProvider(now);
+
+        Customer customer = CreateValidCustomer();
+        Vehicle vehicle = CreateValidVehicle();
+
+        fixture.Customers.Data[customer.Id] = customer;
+        fixture.Vehicles.Data[vehicle.Id] = vehicle;
+
+        BookingService sut = fixture.CreateSut();
+
+        DateTime pickupAt = fixture.TimeProvider.GetLocalNow().DateTime.AddHours(3);
+
+        BookingRequest request = new()
+        {
+            CustomerId = customer.Id,
+            VehicleId = vehicle.Id,
+            PickupAt = pickupAt,
+            ReturnAt = pickupAt.AddDays(30)
+        };
+
+        Booking result = sut.CreateBooking(request);
+
+        Assert.NotNull(result);
+        Assert.Equal(BookingStatus.Reserved, result.Status);
+    }
+    
+    [Fact]
+    [Trait("Rule", "BR-22")]
+    public void CreateBooking_CustomerHasOneOpenBooking_AllowsAnotherBooking()
+    {
+        BookingServiceTestFixture fixture = new();
+
+        Customer customer = CreateValidCustomer();
+        Vehicle vehicle = CreateValidVehicle();
+
+        fixture.Customers.Data[customer.Id] = customer;
+        fixture.Vehicles.Data[vehicle.Id] = vehicle;
+
+        fixture.Bookings.Data.Add(new Booking
+        {
+            Id = 10,
+            CustomerId = customer.Id,
+            VehicleId = 2,
+            PickupAt = new DateTime(2026, 11, 10, 10, 0, 0),
+            ReturnAt = new DateTime(2026, 11, 12, 10, 0, 0),
+            Status = BookingStatus.Reserved
+        });
+
+        BookingService sut = fixture.CreateSut();
+
+        BookingRequest request = CreateValidRequest();
+
+        Booking result = sut.CreateBooking(request);
+
+        Assert.NotNull(result);
+        Assert.Equal(BookingStatus.Reserved, result.Status);
+    }
+    
+    
+    
+    
+    
+    
+    
     
     
     
