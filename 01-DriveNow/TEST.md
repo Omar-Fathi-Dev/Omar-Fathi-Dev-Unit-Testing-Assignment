@@ -221,3 +221,47 @@ The following test cases were selected for implementation:
 6. BR-27: Verify that the audit log records `Booking {reference} created`.
 
 These cases are planned improvements and have not yet been implemented.
+
+
+# Task 7 — Pickups, Returns and Cancellations
+
+## 1. Test Coverage
+
+The following table maps the Task 7 business rules to the tests written for them.
+
+| Business Rule | Test(s) | Coverage |
+|---|---|---|
+| BR-28 — Start Rental | `StartRental_PickupTimeBoundary_EnforcesOneHourRule` | Covers the one-hour pickup boundary: 61 minutes before, exactly 60 minutes before, and 59 minutes before pickup. |
+| BR-41 — Late Return Fee | `ProcessReturn_LateByBoundaryMinutes_CalculatesLateFee`, `ProcessReturn_EarlyReturn_DoesNotChargeLateFee` | Covers early returns and late-fee calculations around the hourly and daily thresholds. |
+| BR-42–BR-46 — Return Processing | `ProcessReturn_ExtraMileage_UsesCategoryRate`, `ProcessReturn_MissingFuel_UsesCategoryRate`, `ProcessReturn_DamageCost_IsCappedByInsuranceDeductible`, `ProcessReturn_EarlyReturn_DoesNotRefundUnusedRentalDays`, `ProcessReturn_ValidReturn_UpdatesEntitiesAndSendsReceipt`, `ProcessReturn_BookingDoesNotExist_ThrowsBookingNotFoundException`, `ProcessReturn_NonActiveBooking_ThrowsInvalidBookingStateException`, `ProcessReturn_InvalidMileageOrFuel_ThrowsArgumentException` | Covers the main return calculations, validation, booking state, entity updates, and receipt notification. |
+| BR-50–BR-53 — Cancellation | `Cancel_TimeBeforePickupBoundary_CalculatesCancellationFee`, `Cancel_PlatinumCustomer_DoesNotPayCancellationFee`, `Cancel_ReservedBooking_UpdatesStatusPromoAndSendsNotifications`, `Cancel_BookingDoesNotExist_ThrowsBookingNotFoundException`, `Cancel_BookingIsNotReserved_ThrowsInvalidBookingStateException`, `Cancel_PickupTimeReached_ThrowsInvalidBookingStateException`, `Cancel_DepositComparedToFee_CalculatesRefundAndAdditionalCharge` | Covers cancellation fee boundaries, Platinum exemption, validation, booking updates, notifications, and deposit calculations. |
+
+## 2. AI Review
+
+The AI reviewed the test names against the Task 7 business rules and identified possible gaps in pickup boundaries, late-return fees, return calculations, and cancellation rules.
+
+It also suggested additional cases for booking states, insurance deductibles, category rates, and cancellation side effects.
+
+## 3. AI Suggestions and Decisions
+
+| AI Suggestion | Decision | Reason |
+|---|---|---|
+| Test starting a non-Reserved booking | Accepted | Verifies that a booking must have the correct status before starting a rental. |
+| Add more BR-28 time boundary tests | Rejected | The existing Theory test already covers 61 minutes before, exactly one hour before, and 59 minutes before pickup. |
+| Add more BR-41 boundary values | Rejected | The existing test already covers the important hourly and daily fee thresholds, including 240 and 241 minutes. |
+| Test 480 and 481 minutes | Rejected | These values do not add enough coverage to justify another test at this stage. |
+| Add more return category and insurance combinations | Rejected | The current tests cover the main category-rate calculations and the insurance deductible cap. |
+| Test more cancellation time boundaries | Rejected | The existing test already covers the cancellation fee thresholds. |
+| Add more deposit comparison tests | Rejected | The existing test covers the refund, exact-match, and additional-charge scenarios. |
+| Add separate audit and notification tests | Rejected | Existing tests already verify the main cancellation and return side effects. |
+| Test every loyalty tier | Rejected | The current tests cover the Platinum exemption. Additional tiers were not considered necessary for this review. |
+
+## 4. Evaluation of AI Review
+
+The AI review was useful because it highlighted areas that should be checked, especially booking status validation and return-cost calculations.
+
+However, some suggestions were already covered by existing tests. For example, the AI recommended adding more BR-28 and BR-41 boundary tests, even though the current tests already cover those boundaries.
+
+I checked each suggestion against the existing test names and test data instead of accepting all recommendations. I accepted only the non-Reserved booking scenario because it adds a meaningful check without significantly increasing the test suite.
+
+This review showed that AI suggestions should be verified against the actual tests and business rules before making changes.

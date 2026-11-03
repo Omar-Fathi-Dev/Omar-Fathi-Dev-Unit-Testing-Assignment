@@ -1234,7 +1234,37 @@ public class BookingServiceTests
     }
     
     
-    
+    [Fact]
+    [Trait("Rule", "BR-28")]
+    public void StartRental_NonReservedBooking_ThrowsInvalidBookingStateException()
+    {
+        // Arrange
+        BookingServiceTestFixture fixture = new();
+
+        Booking booking = new()
+        {
+            Id = 1,
+            Reference = "DN-TEST",
+            PickupAt = new DateTime(2026, 11, 10, 10, 0, 0),
+            Status = BookingStatus.Active
+        };
+
+        fixture.Bookings.Data.Add(booking);
+
+        BookingService sut = fixture.CreateSut();
+
+        // Act
+        InvalidBookingStateException exception =
+            Assert.Throws<InvalidBookingStateException>(
+                () => sut.StartRental(1));
+
+        // Assert
+        Assert.Equal(
+            "Only reserved bookings can be started",
+            exception.Message);
+
+        Assert.Equal(BookingStatus.Active, booking.Status);
+    }
     
     
     
