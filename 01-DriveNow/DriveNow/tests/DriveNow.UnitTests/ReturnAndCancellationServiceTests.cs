@@ -207,11 +207,6 @@ public class ReturnServiceTests
         public readonly Mock<IEmailSender> Email = new();
         public readonly Mock<IAuditLog> Audit = new();
 
-        public readonly Mock<ILineItemFactory> LineItems = new();
-        public readonly Mock<ITaxCalculator> Tax = new();
-        public readonly Mock<ICurrencyFormatter> Currency = new();
-        public readonly Mock<IReceiptFormatter> Formatter = new();
-
         public bool BookingExists { get; set; } = true;
 
         public readonly Booking Booking = new()
@@ -251,30 +246,11 @@ public class ReturnServiceTests
         {
             get
             {
-                LineItems
-                    .Setup(factory => factory.Create(
-                        It.IsAny<Booking>(),
-                        It.IsAny<ReturnReport?>()))
-                    .Returns(new List<LineItem>());
-
-                Tax.Setup(calculator =>
-                    calculator.CalculateVat(It.IsAny<decimal>()))
-                    .Returns(0m);
-
-                Currency.Setup(formatter =>
-                    formatter.Format(It.IsAny<decimal>()))
-                    .Returns<decimal>(amount => amount.ToString("0.00"));
-
-                Formatter.Setup(formatter => formatter.Render(
-                    It.IsAny<string>(),
-                    It.IsAny<IReadOnlyList<string>>()))
-                    .Returns("receipt");
-
                 ReceiptService receipt = new(
-                    LineItems.Object,
-                    Tax.Object,
-                    Currency.Object,
-                    Formatter.Object);
+                    new LineItemFactory(),
+                    new TaxCalculator(),
+                    new CurrencyFormatter(),
+                    new ReceiptFormatter());
 
                 Bookings.Setup(repository => repository.GetById(1))
                     .Returns(() => BookingExists ? Booking : null);

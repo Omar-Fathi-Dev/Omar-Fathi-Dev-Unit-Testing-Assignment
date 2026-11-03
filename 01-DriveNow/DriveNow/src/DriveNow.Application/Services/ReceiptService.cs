@@ -6,16 +6,16 @@ namespace DriveNow.Application.Services;
 
 public class ReceiptService
 {
-    readonly ILineItemFactory _lineItems;
-    readonly ITaxCalculator _tax;
-    readonly ICurrencyFormatter _currency;
-    readonly IReceiptFormatter _receipts;
+    readonly LineItemFactory _lineItems;
+    readonly TaxCalculator _tax;
+    readonly CurrencyFormatter _currency;
+    readonly ReceiptFormatter _receipts;
 
     public ReceiptService(
-        ILineItemFactory lineItems,
-        ITaxCalculator tax,
-        ICurrencyFormatter currency,
-        IReceiptFormatter receipts)
+        LineItemFactory lineItems,
+        TaxCalculator tax,
+        CurrencyFormatter currency,
+        ReceiptFormatter receipts)
     {
         _lineItems = lineItems;
         _tax = tax;
@@ -28,26 +28,35 @@ public class ReceiptService
         var items = _lineItems.Create(booking, report);
         decimal vat = 0m;
         decimal net = 0m;
+
+        var formattedItems = new List<(LineItem Item, string Amount)>();
+        var width = 0;
+
         foreach (var item in items)
         {
             vat += _tax.CalculateVat(item.Amount);
             net += item.Amount;
+
+            string amount = _currency.Format(item.Amount);
+            formattedItems.Add((item, amount));
+
+            width = Math.Max(width, amount.Length);
         }
 
         var total = net + vat;
-        var width = 0;
-        foreach (var item in items)
-            width = Math.Max(width, _currency.Format(item.Amount).Length);
 
         var lines = new List<string>();
-        foreach (var item in items)
+
+        foreach (var formattedItem in formattedItems)
         {
-            var amount = _currency.Format(item.Amount);
-            lines.Add(item.Description.PadRight(30, '.') + amount.PadLeft(width));
+            lines.Add(
+                formattedItem.Item.Description.PadRight(30, '.') +
+                formattedItem.Amount.PadLeft(width));
         }
 
         lines.Add("VAT 14%".PadRight(30, '.') + _currency.Format(vat).PadLeft(width));
         lines.Add("Total".PadRight(30, '.') + _currency.Format(total).PadLeft(width));
+
         return _receipts.Render(booking.Reference, lines);
     }
 }
