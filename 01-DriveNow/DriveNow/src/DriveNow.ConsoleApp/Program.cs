@@ -1,34 +1,116 @@
 ﻿using System.Globalization;
-using DriveNow.Application.Bookings;
 using DriveNow.Application.Models;
 using DriveNow.Application.Receipts;
 using DriveNow.Application.Services;
+using DriveNow.Domain.Calculations;
 using DriveNow.Domain.Enums;
 using DriveNow.Domain.Exceptions;
-using DriveNow.Domain.Calculations;
 using DriveNow.Domain.ValueObjects;
 using DriveNow.Infrastructure.External;
+using DriveNow.Infrastructure.Logging;
+using DriveNow.Infrastructure.Persistence;
 using DriveNow.Infrastructure.Repositories;
 
 namespace DriveNow.ConsoleApp;
 
 internal static class Program
 {
-    static readonly CustomerRepo Customers = new();
-    static readonly VehicleRepository Vehicles = new();
-    static readonly BookingRepository Bookings = new();
-    static readonly PricingService Pricing = new();
-    static readonly BookingService BookingService = new();
-    static readonly ReturnService ReturnService = new();
-    static readonly CancellationService CancellationService = new();
+    // Shared dependencies
+    static readonly TimeProvider Clock = TimeProvider.System;
+    static readonly InMemoryDatabase Database = new(Clock);
+
+    // External service dependencies
+    static readonly PhysicalFileSystem FileSystem = new();
+    static readonly PhysicalDelayProvider DelayProvider = new();
+    static readonly RandomProvider RandomProvider = new();
+    static readonly RandomReferenceGenerator ReferenceGenerator =
+        new(RandomProvider);
+    static readonly ConsoleWriter ConsoleWriter = new();
+
+    // Repositories - all share the same Database instance
+    static readonly CustomerRepository Customers =
+        new(Database);
+
+    static readonly VehicleRepository Vehicles =
+        new(Database);
+
+    static readonly BookingRepository Bookings =
+        new(Database);
+
+    static readonly PromoCodeRepository PromoCodes =
+        new(Database);
+
+    // External services
+    static readonly EmailSender EmailSender =
+        new(FileSystem, Clock);
+
+    static readonly SmsSender SmsSender =
+        new(DelayProvider, ConsoleWriter);
+
+    static readonly PaymentGateway PaymentGateway =
+        new(DelayProvider, RandomProvider, ReferenceGenerator, ConsoleWriter);
+
+    static readonly AuditLog AuditLog =
+        new(FileSystem, Clock);
+
+    // Application services
+    static readonly PricingService Pricing =
+        new(PromoCodes, Clock);
+
+    static readonly ReceiptService ReceiptService =
+        new(
+            new LineItemFactory(),
+            new TaxCalculator(),
+            new CurrencyFormatter(),
+            new ReceiptFormatter());
+
+    static readonly BookingService BookingService =
+        new(
+            Customers,
+            Vehicles,
+            Bookings,
+            PromoCodes,
+            Pricing,
+            PaymentGateway,
+            SmsSender,
+            EmailSender,
+            AuditLog,
+            ReferenceGenerator,
+            Clock);
+
+    static readonly ReturnService ReturnService =
+        new(
+            Bookings,
+            Vehicles,
+            Customers,
+            PaymentGateway,
+            EmailSender,
+            AuditLog,
+            Clock,
+            ReceiptService);
+
+    static readonly CancellationService CancellationService =
+        new(
+            Bookings,
+            Vehicles,
+            Customers,
+            PromoCodes,
+            PaymentGateway,
+            SmsSender,
+            EmailSender,
+            AuditLog,
+            Clock);
 
     static void Main()
     {
         PriceSeedBookings();
+
         while (true)
         {
             PrintMenu();
+
             var choice = Console.ReadLine()?.Trim();
+
             if (choice is null or "0")
                 return;
 
@@ -55,6 +137,7 @@ internal static class Program
         {
             var customer = Customers.GetById(booking.CustomerId)!;
             var vehicle = Vehicles.GetById(booking.VehicleId)!;
+
             booking.Price = Pricing.Calculate(customer, vehicle, new BookingRequest
             {
                 CustomerId = booking.CustomerId,
@@ -65,6 +148,7 @@ internal static class Program
                 AdditionalDrivers = 0,
                 PromoCode = null
             });
+
             Bookings.Update(booking);
         }
     }
@@ -99,6 +183,7 @@ internal static class Program
         foreach (var customer in Customers.GetAll())
         {
             var age = RentalMath.CalculateAge(customer.DateOfBirth, DateTime.Today);
+
             Console.WriteLine(
                 $"{customer.Id,2}  {customer.FullName,-16} age {age,2}  {customer.LoyaltyTier,-10} rentals {customer.CompletedRentals,2}  {(customer.IsBlacklisted ? "blacklisted" : "clear")}");
         }
@@ -107,16 +192,20 @@ internal static class Program
     static void PriceQuote()
     {
         var request = ReadRequest();
+
         var customer = Customers.GetById(request.CustomerId)
             ?? throw new CustomerNotFoundException($"Customer #{request.CustomerId} not found");
+
         var vehicle = Vehicles.GetById(request.VehicleId)
             ?? throw new VehicleNotFoundException($"Vehicle #{request.VehicleId} not found");
+
         PrintPrice(Pricing.Calculate(customer, vehicle, request));
     }
 
     static void CreateBooking()
     {
         var booking = BookingService.CreateBooking(ReadRequest());
+
         Console.WriteLine($"Reference: {booking.Reference}");
         Console.WriteLine($"Total: {Money(booking.Price.Total)}");
         Console.WriteLine($"Deposit: {Money(booking.Deposit)}");
@@ -134,14 +223,18 @@ internal static class Program
         var endMileage = ReadInt("End mileage: ");
         var fuelQuarters = ReadInt("Fuel quarters (0-4): ");
         var damageCost = ReadDecimal("Damage cost: ");
-        var report = ReturnService.ProcessReturn(bookingId, endMileage, fuelQuarters, damageCost);
+
+        var report = ReturnService.ProcessReturn(
+            bookingId,
+            endMileage,
+            fuelQuarters,
+            damageCost);
+
         PrintReport(report);
+
         var booking = Bookings.GetById(bookingId)!;
-        var receipt = new ReceiptService(
-            new LineItemFactory(),
-            new TaxCalculator(),
-            new CurrencyFormatter(),
-            new ReceiptFormatter()).Build(booking, report);
+        var receipt = ReceiptService.Build(booking, report);
+
         Console.WriteLine(receipt);
     }
 
@@ -157,6 +250,7 @@ internal static class Program
         {
             var customer = Customers.GetById(booking.CustomerId)?.FullName ?? "?";
             var vehicle = Vehicles.GetById(booking.VehicleId)?.PlateNumber ?? "?";
+
             Console.WriteLine(
                 $"{booking.Id,2}  {booking.Reference,-16} {customer,-16} {vehicle,-10} {booking.PickupAt:yyyy-MM-dd HH:mm}  {booking.ReturnAt:yyyy-MM-dd HH:mm}  {booking.Status,-10} {Money(booking.Price.Total)}");
         }
@@ -234,8 +328,16 @@ internal static class Program
         while (true)
         {
             Console.Write(label);
-            if (int.TryParse(Console.ReadLine(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
+
+            if (int.TryParse(
+                    Console.ReadLine(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out var value))
+            {
                 return value;
+            }
+
             Console.WriteLine("Please enter a whole number.");
         }
     }
@@ -245,8 +347,16 @@ internal static class Program
         while (true)
         {
             Console.Write(label);
-            if (decimal.TryParse(Console.ReadLine(), NumberStyles.Number, CultureInfo.InvariantCulture, out var value))
+
+            if (decimal.TryParse(
+                    Console.ReadLine(),
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out var value))
+            {
                 return value;
+            }
+
             Console.WriteLine("Please enter a number.");
         }
     }
@@ -256,13 +366,17 @@ internal static class Program
         while (true)
         {
             Console.Write(label);
+
             if (DateTime.TryParseExact(
                     Console.ReadLine()?.Trim(),
                     "yyyy-MM-dd HH:mm",
                     CultureInfo.InvariantCulture,
                     DateTimeStyles.None,
                     out var value))
+            {
                 return value;
+            }
+
             Console.WriteLine("Please use yyyy-MM-dd HH:mm.");
         }
     }
@@ -272,8 +386,15 @@ internal static class Program
         while (true)
         {
             Console.Write("Insurance (Basic, Standard, Premium): ");
-            if (Enum.TryParse<InsurancePlan>(Console.ReadLine()?.Trim(), ignoreCase: true, out var plan))
+
+            if (Enum.TryParse<InsurancePlan>(
+                    Console.ReadLine()?.Trim(),
+                    ignoreCase: true,
+                    out var plan))
+            {
                 return plan;
+            }
+
             Console.WriteLine("Please choose Basic, Standard or Premium.");
         }
     }
@@ -281,7 +402,9 @@ internal static class Program
     static string? ReadOptional(string label)
     {
         Console.Write(label);
+
         var text = Console.ReadLine()?.Trim();
+
         return string.IsNullOrWhiteSpace(text) ? null : text;
     }
 

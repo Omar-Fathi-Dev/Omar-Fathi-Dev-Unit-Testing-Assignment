@@ -1,35 +1,51 @@
+using DriveNow.Application.Abstractions;
+
 namespace DriveNow.Infrastructure.External;
 
-public class PaymentGateway
+public class PaymentGateway : IPaymentGateway
 {
+    private readonly IDelayProvider _delayProvider;
+    private readonly IRandomProvider _randomProvider;
+    private readonly IReferenceGenerator _referenceGenerator;
+    private readonly IConsoleWriter _consoleWriter;
+
+    public PaymentGateway(
+        IDelayProvider delayProvider,
+        IRandomProvider randomProvider,
+        IReferenceGenerator referenceGenerator,
+        IConsoleWriter consoleWriter)
+    {
+        _delayProvider = delayProvider;
+        _randomProvider = randomProvider;
+        _referenceGenerator = referenceGenerator;
+        _consoleWriter = consoleWriter;
+    }
+
     public string Charge(int customerId, decimal amount, string description)
     {
         PauseAndMaybeFail();
-        Console.WriteLine($"[Payment] Charged {amount:N2} EGP to customer #{customerId}");
-        return "PAY-" + RandomCode();
+
+        _consoleWriter.WriteLine(
+            $"[Payment] Charged {amount:N2} EGP to customer #{customerId}");
+
+        return "PAY-" + _referenceGenerator.Generate();
     }
 
     public void Refund(int customerId, decimal amount, string description)
     {
         PauseAndMaybeFail();
-        Console.WriteLine($"[Payment] Refunded {amount:N2} EGP to customer #{customerId}");
+
+        _consoleWriter.WriteLine(
+            $"[Payment] Refunded {amount:N2} EGP to customer #{customerId}");
     }
 
-    static void PauseAndMaybeFail()
+    private void PauseAndMaybeFail()
     {
-        Thread.Sleep(1500);
-        if (new Random().Next(10) == 0)
+        _delayProvider.Delay(1500);
+
+        if (_randomProvider.Next(10) == 0)
+        {
             throw new PaymentFailedException("Gateway timeout");
-    }
-
-    static string RandomCode()
-    {
-        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        var random = new Random();
-        var chars = new char[8];
-        for (var i = 0; i < chars.Length; i++)
-            chars[i] = alphabet[random.Next(alphabet.Length)];
-
-        return new string(chars);
+        }
     }
 }

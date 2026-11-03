@@ -1,10 +1,30 @@
+using DriveNow.Application.Abstractions;
+
 namespace DriveNow.Infrastructure.Logging;
 
-public static class AuditLog
+public class AuditLog : IAuditLog
 {
-    public static void Write(string message)
+    private readonly IFileSystem _fileSystem;
+    private readonly TimeProvider _timeProvider;
+
+    public AuditLog(
+        IFileSystem fileSystem,
+        TimeProvider timeProvider)
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "audit.log");
-        File.AppendAllText(path, $"[{DateTime.Now:O}] {message}{Environment.NewLine}");
+        _fileSystem = fileSystem;
+        _timeProvider = timeProvider;
+    }
+
+    public void Write(string message)
+    {
+        string path = _fileSystem.Combine(
+            _fileSystem.BaseDirectory,
+            "audit.log");
+
+        DateTime now = _timeProvider.GetLocalNow().DateTime;
+
+        string content = $"[{now:O}] {message}{Environment.NewLine}";
+
+        _fileSystem.AppendAllText(path, content);
     }
 }

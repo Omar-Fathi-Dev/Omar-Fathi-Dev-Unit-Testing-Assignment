@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿
+using System.Reflection;
 using System.Text.RegularExpressions;
 using NetArchTest.Rules;
 using FluentAssertions;
@@ -7,10 +8,17 @@ namespace DriveNow.ArchitectureTests;
 
 public class ArchitectureTests
 {
-    private static readonly Assembly DomainAssembly = typeof(DriveNow.Domain.Entities.Booking).Assembly;
-    private static readonly Assembly ApplicationAssembly = typeof(DriveNow.Application.Bookings.CancellationService).Assembly;
-    private static readonly Assembly InfrastructureAssembly = typeof(DriveNow.Infrastructure.External.EmailSender).Assembly;
-    private static readonly Assembly UnitTestsAssembly = typeof(DriveNow.UnitTests.RentalMathTests).Assembly;
+    private static readonly Assembly DomainAssembly =
+        typeof(DriveNow.Domain.Entities.Booking).Assembly;
+
+    private static readonly Assembly ApplicationAssembly =
+        typeof(DriveNow.Application.Services.CancellationService).Assembly;
+
+    private static readonly Assembly InfrastructureAssembly =
+        typeof(DriveNow.Infrastructure.External.EmailSender).Assembly;
+
+    private static readonly Assembly UnitTestsAssembly =
+        typeof(DriveNow.UnitTests.RentalMathTests).Assembly;
 
     // R1: Domain depends on no other DriveNow project
     [Fact]
@@ -18,25 +26,29 @@ public class ArchitectureTests
     {
         var result = Types.InAssembly(DomainAssembly)
             .ShouldNot()
-            .HaveDependencyOnAny("DriveNow.Application", "DriveNow.Infrastructure", "DriveNow.ConsoleApp")
+            .HaveDependencyOnAny(
+                "DriveNow.Application",
+                "DriveNow.Infrastructure",
+                "DriveNow.ConsoleApp")
             .GetResult();
 
         result.IsSuccessful.Should().BeTrue();
     }
-    
-    // R2: Application depends only on Domain (not Infrastructure, not ConsoleApp)
+
+    // R2: Application depends only on Domain
     [Fact]
     public void Application_ShouldNotDependOnInfrastructureOrConsoleApp()
     {
         var result = Types.InAssembly(ApplicationAssembly)
             .ShouldNot()
-            .HaveDependencyOnAny("DriveNow.Infrastructure", "DriveNow.ConsoleApp")
+            .HaveDependencyOnAny(
+                "DriveNow.Infrastructure",
+                "DriveNow.ConsoleApp")
             .GetResult();
 
         result.IsSuccessful.Should().BeTrue();
     }
-    
-    
+
     // R3: Infrastructure does not depend on ConsoleApp
     [Fact]
     public void Infrastructure_ShouldNotDependOnConsoleApp()
@@ -49,12 +61,12 @@ public class ArchitectureTests
         result.IsSuccessful.Should().BeTrue();
     }
 
-   
     // R4: Interfaces start with 'I'
     [Fact]
     public void Interfaces_Should_StartWithI()
     {
-        var result = Types.InAssemblies([DomainAssembly, ApplicationAssembly, InfrastructureAssembly])
+        var result = Types.InAssemblies(
+                [DomainAssembly, ApplicationAssembly, InfrastructureAssembly])
             .That()
             .AreInterfaces()
             .Should()
@@ -63,7 +75,7 @@ public class ArchitectureTests
 
         result.IsSuccessful.Should().BeTrue();
     }
-    
+
     // R4: Repositories end with 'Repository' and live in Repositories namespace
     [Fact]
     public void Repositories_ShouldBeInRepositoriesNamespace()
@@ -74,10 +86,10 @@ public class ArchitectureTests
             .Should()
             .ResideInNamespaceEndingWith("Repositories")
             .GetResult();
-        
+
         result.IsSuccessful.Should().BeTrue();
     }
-    
+
     [Fact]
     public void ClassesInRepositoriesNamespace_ShouldEndWithRepository()
     {
@@ -87,37 +99,40 @@ public class ArchitectureTests
             .Should()
             .HaveNameEndingWith("Repository")
             .GetResult();
+
         result.IsSuccessful.Should().BeTrue();
     }
-    
-    //R4: Services end with 'Service' and live in Services namespace
-    
+
+    // R4: Services end with 'Service' and live in Services namespace
     [Fact]
     public void Services_ShouldBeInServicesNamespace()
     {
-        var result = Types.InAssemblies([DomainAssembly, ApplicationAssembly])
+        var result = Types.InAssemblies(
+                [DomainAssembly, ApplicationAssembly])
             .That()
             .HaveNameEndingWith("Service")
             .Should()
             .ResideInNamespaceEndingWith("Services")
             .GetResult();
-        
+
         result.IsSuccessful.Should().BeTrue();
     }
-    
+
     [Fact]
     public void ClassesInServicesNamespace_ShouldEndWithService()
     {
-        var result = Types.InAssemblies([DomainAssembly, ApplicationAssembly])
+        var result = Types.InAssemblies(
+                [DomainAssembly, ApplicationAssembly])
             .That()
             .ResideInNamespaceEndingWith("Services")
             .Should()
             .HaveNameEndingWith("Service")
             .GetResult();
-        
+
         result.IsSuccessful.Should().BeTrue();
     }
-    // R4: Exceptions end with 'Exception' and live in DriveNow.Domain.Exceptions
+
+    // R4: Exceptions end with 'Exception' and live in Domain.Exceptions
     [Fact]
     public void Exceptions_ShouldBeInExceptionsNamespace()
     {
@@ -129,10 +144,10 @@ public class ArchitectureTests
             .And()
             .HaveNameEndingWith("Exception")
             .GetResult();
-        
+
         result.IsSuccessful.Should().BeTrue();
     }
-    
+
     [Fact]
     public void ClassesInExceptionsNamespace_ShouldInheritExceptionAndEndWithException()
     {
@@ -144,27 +159,28 @@ public class ArchitectureTests
             .And()
             .HaveNameEndingWith("Exception")
             .GetResult();
-        
+
         result.IsSuccessful.Should().BeTrue();
     }
-    
-    // R5: Test classes must end with "Tests".
+
+    // R5: Test classes must end with "Tests"
     [Fact]
     public void TestClasses_ShouldEndWithTests()
     {
         foreach (Type type in UnitTestsAssembly.GetTypes())
         {
             if (!type.IsClass)
-            {
                 continue;
-            }
 
             bool containsTestMethod = false;
 
             foreach (MethodInfo method in type.GetMethods())
             {
-                bool hasFact = method.GetCustomAttribute<FactAttribute>() != null;
-                bool hasTheory = method.GetCustomAttribute<TheoryAttribute>() != null;
+                bool hasFact =
+                    method.GetCustomAttribute<FactAttribute>() != null;
+
+                bool hasTheory =
+                    method.GetCustomAttribute<TheoryAttribute>() != null;
 
                 if (hasFact || hasTheory)
                 {
@@ -174,14 +190,11 @@ public class ArchitectureTests
             }
 
             if (containsTestMethod)
-            {
                 type.Name.Should().EndWith("Tests");
-            }
         }
     }
-    
-    // R5: Test methods must follow Method_Scenario_ExpectedResult.
 
+    // R5: Test methods must follow Method_Scenario_ExpectedResult
     [Fact]
     public void TestMethods_ShouldFollowNamingPattern()
     {
@@ -192,8 +205,11 @@ public class ArchitectureTests
         {
             foreach (MethodInfo method in type.GetMethods())
             {
-                bool hasFact = method.GetCustomAttribute<FactAttribute>() != null;
-                bool hasTheory = method.GetCustomAttribute<TheoryAttribute>() != null;
+                bool hasFact =
+                    method.GetCustomAttribute<FactAttribute>() != null;
+
+                bool hasTheory =
+                    method.GetCustomAttribute<TheoryAttribute>() != null;
 
                 if (hasFact || hasTheory)
                     pattern.IsMatch(method.Name).Should().BeTrue();
@@ -201,4 +217,3 @@ public class ArchitectureTests
         }
     }
 }
-
