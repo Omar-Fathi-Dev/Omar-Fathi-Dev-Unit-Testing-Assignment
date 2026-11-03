@@ -99,5 +99,17 @@ I compared the AI suggestions with the existing tests and the README business ru
 
 
 
+### R4 — Bogus
 
+I created `CustomerFaker` and `VehicleFaker` to generate test data.
+
+I used a fixed seed (`123`) so the generated data can be reproduced when a test fails. This makes debugging easier because the test uses the same generated data each time.
+
+**Random data is suitable when:**
+Testing a scenario where the exact customer name or email does not affect the expected result.
+
+**Fixed data is necessary when:**
+Testing age-based pricing or loyalty discounts, because the expected result depends on the customer's exact age or loyalty tier.
+
+I also added a test using the Faker classes to generate customer and vehicle data.
 
