@@ -10,6 +10,7 @@ using FluentAssertions;
 using FluentAssertions.Execution;
 using Moq;
 using Xunit;
+using Microsoft.Extensions.Time.Testing;
 
 namespace DriveNow.UnitTests;
 
@@ -70,18 +71,24 @@ public class PricingServiceTests
         }
     }
     
-    
-    
     [Theory]
     [Trait("Rule", "BR-31")]
     [InlineData(2026, 11, 1, 1, 0)]  // Sunday
     [InlineData(2026, 10, 30, 1, 20)] // Friday
-    [InlineData(2026, 10, 29, 3, 40)] // Thursday
-    public void Calculate_WeekendSurcharge_ReturnsExpectedAmount(int year, int month, int day, int rentalDays, decimal expected)
+    [InlineData(2026, 10, 31, 1, 20)] // Saturday
+    [InlineData(2026, 10, 29, 3, 40)] // Thursday, Friday, Saturday
+    public void Calculate_WeekendSurcharge_ReturnsExpectedAmount(
+        int year,
+        int month,
+        int day,
+        int rentalDays,
+        decimal expected)
     {
         IPromoCodeRepository promoRepository = new Mock<IPromoCodeRepository>().Object;
 
-        PricingService sut = new PricingService(promoRepository, TimeProvider.System);
+        PricingService sut = new PricingService(
+            promoRepository,
+            TimeProvider.System);
 
         Customer customer = new Customer
         {
@@ -104,18 +111,23 @@ public class PricingServiceTests
         };
 
         PriceBreakdown result = sut.Calculate(customer, vehicle, request);
+
         result.WeekendSurcharge.Should().Be(expected);
     }
-    
     
     [Theory]
     [Trait("Rule", "BR-32")]
     [InlineData(20, 0)]
+    [InlineData(21, 15)]
     [InlineData(23, 15)]
+    [InlineData(24, 15)]
     [InlineData(25, 0)]
-    public void Calculate_YoungDriver_ReturnsExpectedSurcharge(int age, decimal expectedPercentage)
+    public void Calculate_YoungDriver_ReturnsExpectedSurcharge(
+        int age,
+        decimal expectedPercentage)
     {
-        Mock<IPromoCodeRepository> promoRepository = new Mock<IPromoCodeRepository>();
+        Mock<IPromoCodeRepository> promoRepository =
+            new Mock<IPromoCodeRepository>();
 
         PricingService sut = new PricingService(
             promoRepository.Object,
@@ -143,7 +155,9 @@ public class PricingServiceTests
         };
 
         PriceBreakdown result = sut.Calculate(customer, vehicle, request);
+
         decimal expected = result.BaseAmount * expectedPercentage / 100m;
+
         result.YoungDriverSurcharge.Should().Be(expected);
     }
     
@@ -151,9 +165,13 @@ public class PricingServiceTests
     [Theory]
     [Trait("Rule", "BR-33")]
     [InlineData(3, 0)]
+    [InlineData(6, 0)]
     [InlineData(7, 10)]
+    [InlineData(13, 10)]
     [InlineData(14, 15)]
-    public void Calculate_Duration_ReturnsExpectedDiscount(int rentalDays, decimal expectedPercentage)
+    public void Calculate_Duration_ReturnsExpectedDiscount(
+        int rentalDays,
+        decimal expectedPercentage)
     {
         Mock<IPromoCodeRepository> promoRepository =
             new Mock<IPromoCodeRepository>();
@@ -189,7 +207,7 @@ public class PricingServiceTests
 
         result.DurationDiscount.Should().Be(expected);
     }
-
+    
     
     [Theory]
     [Trait("Rule", "BR-34")]
@@ -236,72 +254,35 @@ public class PricingServiceTests
 
     
     
-    [Fact]
-    [Trait("Rule", "BR-35")]
-    public void Calculate_ValidPromoCode_AppliesDiscount()
+    
+    
+    public class PromoCodeTestData : TheoryData<string, PromoCode?, int, VehicleCategory, decimal?, string?>
+{
+    public PromoCodeTestData()
     {
-        DateTime pickup = new DateTime(2026, 11, 1, 10, 0, 0);
+        Add(
+            "SAVE10",
+            new PromoCode
+            {
+                Code = "SAVE10",
+                DiscountPercent = 10,
+                ValidFrom = new DateTime(2026, 1, 1),
+                ValidUntil = new DateTime(2026, 12, 31),
+                MinDays = 1,
+                MaxUses = 100,
+                UsedCount = 0
+            },
+            2,
+            VehicleCategory.Economy,
+            20m,
+            null);
 
-        PromoCode promo = new PromoCode
-        {
-            Code = "SAVE10",
-            DiscountPercent = 10,
-            ValidFrom = pickup.Date,
-            ValidUntil = pickup.Date.AddDays(10),
-            MinDays = 1,
-            MaxUses = 100,
-            UsedCount = 0
-        };
-
-        Mock<IPromoCodeRepository> promoRepository =
-            new Mock<IPromoCodeRepository>();
-
-        promoRepository
-            .Setup(repository => repository.GetByCode("SAVE10"))
-            .Returns(promo);
-
-        PricingService sut = new PricingService(
-            promoRepository.Object,
-            TimeProvider.System);
-
-        Customer customer = new Customer
-        {
-            DateOfBirth = pickup.AddYears(-30),
-            LoyaltyTier = LoyaltyTier.None
-        };
-
-        Vehicle vehicle = new Vehicle
-        {
-            DailyRate = 100m,
-            Category = VehicleCategory.Economy
-        };
-
-        BookingRequest request = new BookingRequest
-        {
-            PickupAt = pickup,
-            ReturnAt = pickup.AddDays(2),
-            InsurancePlan = InsurancePlan.Basic,
-            PromoCode = "SAVE10"
-        };
-
-        PriceBreakdown result = sut.Calculate(customer, vehicle, request);
-
-        result.PromoDiscount.Should().Be(20m);
-    }
-
-    
-    
-    
-    
-    public class InvalidPromoCodeData : TheoryData<string, PromoCode?, int, VehicleCategory, string>
-    {
-        public InvalidPromoCodeData()
-    {
         Add(
             "UNKNOWN",
             null,
             3,
             VehicleCategory.Economy,
+            null,
             "Promo code 'UNKNOWN' does not exist");
 
         Add(
@@ -317,6 +298,7 @@ public class PricingServiceTests
             },
             3,
             VehicleCategory.Economy,
+            null,
             "Promo code 'EXPIRED' has expired");
 
         Add(
@@ -332,6 +314,7 @@ public class PricingServiceTests
             },
             3,
             VehicleCategory.Economy,
+            null,
             "Promo code 'MIN DAYS' requires at least 5 days");
 
         Add(
@@ -351,6 +334,7 @@ public class PricingServiceTests
             },
             3,
             VehicleCategory.Economy,
+            null,
             "Promo code 'SUV ONLY' is not valid for Economy");
 
         Add(
@@ -367,20 +351,90 @@ public class PricingServiceTests
             },
             3,
             VehicleCategory.Economy,
+            null,
             "Promo code 'USED UP' has been fully used");
+        Add(
+            "START DATE",
+            new PromoCode
+            {
+                Code = "START DATE",
+                DiscountPercent = 10,
+                ValidFrom = new DateTime(2026, 11, 1),
+                ValidUntil = new DateTime(2026, 12, 31),
+                MinDays = 1,
+                MaxUses = 100
+            },
+            2,
+            VehicleCategory.Economy,
+            20m,
+            null);
+
+            // Valid on the last day of the validity period
+        Add(
+            "END DATE",
+            new PromoCode
+            {
+                Code = "END DATE",
+                DiscountPercent = 10,
+                ValidFrom = new DateTime(2026, 10, 1),
+                ValidUntil = new DateTime(2026, 11, 1),
+                MinDays = 1,
+                MaxUses = 100
+            },
+            2,
+            VehicleCategory.Economy,
+            20m,
+            null);
+
+            // Null AllowedCategories means all vehicle categories are allowed
+        Add(
+            "ALL CATEGORIES",
+            new PromoCode
+            {
+                Code = "ALL CATEGORIES",
+                DiscountPercent = 10,
+                ValidFrom = new DateTime(2026, 1, 1),
+                ValidUntil = new DateTime(2026, 12, 31),
+                MinDays = 1,
+                AllowedCategories = null,
+                MaxUses = 100
+            },
+            2,
+            VehicleCategory.Luxury,
+            20m,
+            null);
+
+            // Expired and below minimum days: expiration must be reported first
+        Add(
+            "MULTIPLE FAILURES",
+            new PromoCode
+            {
+                Code = "MULTIPLE FAILURES",
+                DiscountPercent = 10,
+                ValidFrom = new DateTime(2026, 1, 1),
+                ValidUntil = new DateTime(2026, 10, 31),
+                MinDays = 5,
+                MaxUses = 100
+            },
+            2,
+            VehicleCategory.Economy,
+            null,
+            "Promo code 'MULTIPLE FAILURES' has expired");
     }
-    }
+}
     
     
     [Theory]
+    [Trait("Rule", "BR-35")]
     [Trait("Rule", "BR-36")]
-    [ClassData(typeof(InvalidPromoCodeData))]
-    public void Calculate_InvalidPromoCode_ThrowsException(
-        string code,
+    [ClassData(typeof(PromoCodeTestData))]
+    public void Calculate_PromoCode_ReturnsExpectedResult(
+        string promoCode,
         PromoCode? promo,
         int rentalDays,
         VehicleCategory category,
-        string expectedMessage)
+        decimal? expectedDiscount,
+        string? expectedMessage)
     {
         DateTime pickup = new DateTime(2026, 11, 1, 10, 0, 0);
 
@@ -388,12 +442,15 @@ public class PricingServiceTests
             new Mock<IPromoCodeRepository>();
 
         promoRepository
-            .Setup(repository => repository.GetByCode(code))
+            .Setup(repository => repository.GetByCode(promoCode))
             .Returns(promo);
+
+        FakeTimeProvider fakeTimeProvider = new FakeTimeProvider(
+            new DateTimeOffset(2026, 11, 1, 10, 0, 0, TimeSpan.Zero));
 
         PricingService sut = new PricingService(
             promoRepository.Object,
-            TimeProvider.System);
+            fakeTimeProvider);
 
         Customer customer = new Customer
         {
@@ -412,26 +469,42 @@ public class PricingServiceTests
             PickupAt = pickup,
             ReturnAt = pickup.AddDays(rentalDays),
             InsurancePlan = InsurancePlan.Basic,
-            PromoCode = code
+            PromoCode = promoCode
         };
 
-        Action act = () => sut.Calculate(customer, vehicle, request);
+        if (expectedMessage is not null)
+        {
+            Action act = () => sut.Calculate(customer, vehicle, request);
 
-        act.Should().Throw<InvalidPromoCodeException>().WithMessage(expectedMessage);
+            act.Should()
+                .Throw<InvalidPromoCodeException>()
+                .WithMessage(expectedMessage);
+
+            return;
+        }
+
+        PriceBreakdown result = sut.Calculate(customer, vehicle, request);
+
+        result.PromoDiscount.Should().Be(expectedDiscount);
     }
     
     
-    
-    [Fact]
+   
+    [Theory]
     [Trait("Rule", "BR-37")]
-    public void Calculate_DiscountsExceedLimit_ReducesPromoDiscount()
+    [InlineData(5, 40)]   // 20%: Below the cap
+    [InlineData(10, 80)]  // 25%: Exactly at the cap
+    [InlineData(15, 80)]  // 30%: Promo reduced to 10%
+    public void Calculate_DiscountsRespect25PercentCap_ReducesPromoOnly(
+        int promoPercent,
+        decimal expectedPromoDiscount)
     {
         DateTime pickup = new DateTime(2026, 11, 1, 10, 0, 0);
 
         PromoCode promo = new PromoCode
         {
             Code = "SAVE15",
-            DiscountPercent = 15,
+            DiscountPercent = promoPercent,
             ValidFrom = new DateTime(2026, 1, 1),
             ValidUntil = new DateTime(2026, 12, 31),
             MinDays = 1,
@@ -473,9 +546,8 @@ public class PricingServiceTests
 
         result.DurationDiscount.Should().Be(80m);
         result.LoyaltyDiscount.Should().Be(40m);
-        result.PromoDiscount.Should().Be(80m);
+        result.PromoDiscount.Should().Be(expectedPromoDiscount);
     }
-    
     
     
     [Theory]
@@ -565,88 +637,91 @@ public class PricingServiceTests
 
 
     
-    public class PricingExamplesData : TheoryData<Customer, Vehicle, BookingRequest, PriceBreakdown>
+   public static IEnumerable<object[]> PricingExamples
     {
-        public PricingExamplesData()
+    get
+    {
+        // Example A
+        DateTime pickupA = new DateTime(2026, 11, 1, 10, 0, 0);
+
+        yield return new object[]
         {
-            // Example A
-            DateTime pickupA = new DateTime(2026, 11, 1, 10, 0, 0);
+            new Customer
+            {
+                DateOfBirth = pickupA.AddYears(-34),
+                LoyaltyTier = LoyaltyTier.Gold
+            },
+            new Vehicle
+            {
+                DailyRate = 600m,
+                Category = VehicleCategory.Economy
+            },
+            new BookingRequest
+            {
+                PickupAt = pickupA,
+                ReturnAt = pickupA.AddDays(3),
+                InsurancePlan = InsurancePlan.Standard,
+                AdditionalDrivers = 0
+            },
+            new PriceBreakdown
+            {
+                RentalDays = 3,
+                BaseAmount = 1800m,
+                WeekendSurcharge = 0m,
+                YoungDriverSurcharge = 0m,
+                DurationDiscount = 0m,
+                LoyaltyDiscount = 180m,
+                PromoDiscount = 0m,
+                InsuranceCost = 450m,
+                AdditionalDriversCost = 0m,
+                Total = 2070m
+            }
+        };
 
-            Add(
-                new Customer
-                {
-                    DateOfBirth = pickupA.AddYears(-34),
-                    LoyaltyTier = LoyaltyTier.Gold
-                },
-                new Vehicle
-                {
-                    DailyRate = 600m,
-                    Category = VehicleCategory.Economy
-                },
-                new BookingRequest
-                {
-                    PickupAt = pickupA,
-                    ReturnAt = pickupA.AddDays(3),
-                    InsurancePlan = InsurancePlan.Standard,
-                    AdditionalDrivers = 0
-                },
-                new PriceBreakdown
-                {
-                    RentalDays = 3,
-                    BaseAmount = 1800m,
-                    WeekendSurcharge = 0m,
-                    YoungDriverSurcharge = 0m,
-                    DurationDiscount = 0m,
-                    LoyaltyDiscount = 180m,
-                    PromoDiscount = 0m,
-                    InsuranceCost = 450m,
-                    AdditionalDriversCost = 0m,
-                    Total = 2070m
-                });
+        // Example B
+        DateTime pickupB = new DateTime(2026, 11, 5, 9, 0, 0);
 
-            // Example B
-            DateTime pickupB = new DateTime(2026, 11, 5, 9, 0, 0);
-
-            Add(
-                new Customer
-                {
-                    DateOfBirth = pickupB.AddYears(-23),
-                    LoyaltyTier = LoyaltyTier.Silver
-                },
-                new Vehicle
-                {
-                    DailyRate = 1500m,
-                    Category = VehicleCategory.SUV
-                },
-                new BookingRequest
-                {
-                    PickupAt = pickupB,
-                    ReturnAt = pickupB.AddDays(7).AddMinutes(30),
-                    InsurancePlan = InsurancePlan.Premium,
-                    AdditionalDrivers = 1,
-                    PromoCode = "SAVE15"
-                },
-                new PriceBreakdown
-                {
-                    RentalDays = 7,
-                    BaseAmount = 10500m,
-                    WeekendSurcharge = 600m,
-                    YoungDriverSurcharge = 1575m,
-                    DurationDiscount = 1050m,
-                    LoyaltyDiscount = 525m,
-                    PromoDiscount = 1050m,
-                    InsuranceCost = 2100m,
-                    AdditionalDriversCost = 700m,
-                    Total = 12850m
-                });
-        }
+        yield return new object[]
+        {
+            new Customer
+            {
+                DateOfBirth = pickupB.AddYears(-23),
+                LoyaltyTier = LoyaltyTier.Silver
+            },
+            new Vehicle
+            {
+                DailyRate = 1500m,
+                Category = VehicleCategory.SUV
+            },
+            new BookingRequest
+            {
+                PickupAt = pickupB,
+                ReturnAt = pickupB.AddDays(7).AddMinutes(30),
+                InsurancePlan = InsurancePlan.Premium,
+                AdditionalDrivers = 1,
+                PromoCode = "SAVE15"
+            },
+            new PriceBreakdown
+            {
+                RentalDays = 7,
+                BaseAmount = 10500m,
+                WeekendSurcharge = 600m,
+                YoungDriverSurcharge = 1575m,
+                DurationDiscount = 1050m,
+                LoyaltyDiscount = 525m,
+                PromoDiscount = 1050m,
+                InsuranceCost = 2100m,
+                AdditionalDriversCost = 700m,
+                Total = 12850m
+            }
+        };
     }
-
+}
     
     
     [Theory]
     [Trait("Rule", "BR-40")]
-    [ClassData(typeof(PricingExamplesData))]
+    [MemberData(nameof(PricingExamples))]
     public void Calculate_FullPricingExample_ReturnsExpectedBreakdown(
         Customer customer,
         Vehicle vehicle,
@@ -682,6 +757,71 @@ public class PricingServiceTests
             result.Should().BeEquivalentTo(expected);
         }
     }
+    
+    [Fact]
+    [Trait("Rule", "BR-40")]
+    public void Calculate_WithRandomCustomerAndVehicle_ReturnsPriceBreakdown()
+    {
+        Customer customer = new CustomerFaker().Generate();
+        Vehicle vehicle = new VehicleFaker().Generate();
+
+        DateTime pickup = new DateTime(2026, 11, 1, 10, 0, 0);
+
+        BookingRequest request = new BookingRequest
+        {
+            PickupAt = pickup,
+            ReturnAt = pickup.AddDays(3),
+            InsurancePlan = InsurancePlan.Basic
+        };
+
+        Mock<IPromoCodeRepository> promoRepository =
+            new Mock<IPromoCodeRepository>();
+
+        PricingService sut = new PricingService(
+            promoRepository.Object,
+            TimeProvider.System);
+
+        PriceBreakdown result = sut.Calculate(customer, vehicle, request);
+
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    [Trait("Rule", "BR-32")]
+    public void Calculate_WithCustomerAge20_DoesNotApplyYoungDriverSurcharge()
+    {
+        DateTime pickup = new DateTime(2026, 11, 1, 10, 0, 0);
+
+        Customer customer = new CustomerFaker()
+            .WithAge(20)
+            .WithTier(LoyaltyTier.Silver)
+            .Generate();
+
+        customer.DateOfBirth = pickup.AddYears(-20);
+
+        Vehicle vehicle = new VehicleFaker().Generate();
+        vehicle.DailyRate = 100m;
+
+        BookingRequest request = new BookingRequest
+        {
+            PickupAt = pickup,
+            ReturnAt = pickup.AddDays(2),
+            InsurancePlan = InsurancePlan.Basic
+        };
+
+        Mock<IPromoCodeRepository> promoRepository =
+            new Mock<IPromoCodeRepository>();
+
+        PricingService sut = new PricingService(
+            promoRepository.Object,
+            TimeProvider.System);
+
+        PriceBreakdown result = sut.Calculate(customer, vehicle, request);
+
+        result.YoungDriverSurcharge.Should().Be(0m);
+    }
+    
+    
 
 
 
@@ -722,7 +862,7 @@ public class PricingServiceTests
     
     
     [Theory]
-    [ClassData(typeof(PricingExamplesData))]
+    [MemberData(nameof(PricingExamples))]
     public async Task Calculate_FullPricingExample_MatchesSnapshot(
         Customer customer,
         Vehicle vehicle,

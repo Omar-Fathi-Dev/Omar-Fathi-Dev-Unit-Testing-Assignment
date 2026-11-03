@@ -113,3 +113,46 @@ Testing age-based pricing or loyalty discounts, because the expected result depe
 
 I also added a test using the Faker classes to generate customer and vehicle data.
 
+
+## AI Self-Review — PricingService
+### AI Suggestions and Decisions
+
+| AI Suggestion | Decision | Reason |
+|---|---|---|
+| Test zero or negative rental days in BR-30 | Rejected | Rental duration validation belongs to BR-03, not PricingService. |
+| Add more daily rates and rental durations | Rejected | Existing tests already cover different rates and durations. |
+| Add Saturday-start rental coverage in BR-31 | Accepted | Saturday is a weekend day and needs explicit coverage. |
+| Add age 21 and 24 boundary tests in BR-32 | Accepted | These are the exact boundaries of the young-driver age range. |
+| Test birthday exactly on pickup date | Accepted | Verifies age calculation at the birthday boundary. |
+| Add 6-day and 13-day tests in BR-33 | Accepted | These complete the required duration boundaries. |
+| Add a Bronze or no-tier test in BR-34 | Rejected | Existing tests already cover None, Silver, Gold, and Platinum. |
+| Test invalid or zero promo percentages | Rejected | These scenarios are not specified by the business rules. |
+| Test all Promo validation failures in BR-36 | Accepted | The five main failure conditions are covered, and the additional boundary cases improve validation coverage. |
+| Test case-insensitive Promo lookup | Accepted | BR-36 explicitly requires case-insensitive lookup. |
+| Test inclusive Promo validity dates | Accepted | Both the start and end dates are inclusive. |
+| Test null allowed categories | Accepted | A null category list means the Promo is valid for all categories. |
+| Test multiple Promo failures together | Accepted | Verifies that the first failed validation condition determines the error. |
+| Test discount combinations below, exactly at, and above 25% | Accepted | These cases verify the discount cap boundary. |
+| Verify that only the Promo discount is reduced by the cap | Accepted | BR-37 requires duration and loyalty discounts to remain unchanged. |
+| Test all insurance plans with Luxury vehicles | Rejected | Standard Luxury is already covered. Additional Luxury combinations were considered lower priority. |
+| Test zero additional drivers | Rejected | Existing tests cover additional-driver pricing and free-driver behavior by loyalty tier. |
+| Test Silver customers paying for every additional driver | Accepted | BR-39 gives the free first driver only to Gold and Platinum customers. |
+| Add more full-pricing combinations | Rejected | The existing worked examples already combine several pricing components. |
+
+### Evaluation of AI Review
+
+The AI review identified useful boundary cases, especially for Promo validation and the 25% discount cap.
+
+Some suggestions were already covered by existing tests, while others had lower priority compared with the main business-rule boundaries.
+
+I selected the suggestions that improve important rule coverage and rejected the remaining suggestions to keep the test suite focused and avoid unnecessary duplication.
+### Evaluation of AI Review
+
+The AI review identified useful missing boundary cases, especially for age, rental duration, Promo validation, discount capping, and additional drivers.
+
+Some suggestions were already covered by existing tests, while others were outside the specified business rules.
+
+The review also helped identify interactions between pricing components that should be tested together, not only independently.
+
+I checked the suggestions against the assignment requirements and business rules before deciding which ones to accept.
+
