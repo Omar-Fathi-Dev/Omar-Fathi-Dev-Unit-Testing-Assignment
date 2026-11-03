@@ -1,4 +1,4 @@
-namespace DriveNow.Domain.Services;
+namespace DriveNow.Domain.Calculations;
 
 public static class RentalMath
 {
@@ -13,27 +13,30 @@ public static class RentalMath
         if (returnAt <= pickup)
             throw new ArgumentException("Return must be after pickup");
 
-        var span = returnAt - pickup;
-        var days = (int)(span.Ticks / TimeSpan.TicksPerDay);
-        var remainder = TimeSpan.FromTicks(span.Ticks % TimeSpan.TicksPerDay);
+        TimeSpan span = returnAt - pickup;
+        int days = (int)(span.Ticks / TimeSpan.TicksPerDay);
+        TimeSpan remainder = TimeSpan.FromTicks(span.Ticks % TimeSpan.TicksPerDay);
+
         if (remainder.TotalMinutes > 60)
             days++;
 
         return Math.Max(days, 1);
     }
 
-    static int FullYears(DateTime start, DateTime onDate)
+    private static int FullYears(DateTime start, DateTime onDate)
     {
-        var years = onDate.Year - start.Year;
+        int years = onDate.Year - start.Year;
+
         if (onDate.Date < Birthday(start, onDate.Year))
             years--;
 
         return years;
     }
 
-    static DateTime Birthday(DateTime start, int year)
+    private static DateTime Birthday(DateTime start, int year)
     {
-        var day = start.Day;
+        int day = start.Day;
+
         if (start.Month == 2 && day == 29 && !DateTime.IsLeapYear(year))
             day = 28;
 

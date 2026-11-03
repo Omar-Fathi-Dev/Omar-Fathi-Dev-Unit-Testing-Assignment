@@ -5,7 +5,7 @@ using DriveNow.Application.Receipts;
 using DriveNow.Application.Services;
 using DriveNow.Domain.Enums;
 using DriveNow.Domain.Exceptions;
-using DriveNow.Domain.Services;
+using DriveNow.Domain.Calculations;
 using DriveNow.Domain.ValueObjects;
 using DriveNow.Infrastructure.External;
 using DriveNow.Infrastructure.Repositories;
