@@ -416,6 +416,66 @@ public class CancellationServiceTests
 
         Assert.Equal("Booking has already started", exception.Message);
     }
+    
+    
+    [Theory]
+    [InlineData(1500, 500, 0)]
+    [InlineData(1000, 0, 0)]
+    [InlineData(500, 0, 500)]
+    [Trait("Rule", "BR-52")]
+    public void Cancel_DepositComparedToFee_CalculatesRefundAndAdditionalCharge(
+        decimal deposit,
+        decimal expectedRefund,
+        decimal expectedCharge)
+    {
+        CancellationFixture fixture = new();
+        fixture.Booking.Deposit = deposit;
+
+        // Under 24 hours: cancellation fee = 1000
+        fixture.SetNow(Pickup.AddHours(-23));
+
+        decimal fee = fixture.Sut.Cancel(1);
+
+        Assert.Equal(1000m, fee);
+
+        if (expectedRefund > 0)
+        {
+            fixture.Payments.Verify(
+                payment => payment.Refund(
+                    1,
+                    expectedRefund,
+                    "Deposit refund DN-TEST"),
+                Times.Once);
+        }
+        else
+        {
+            fixture.Payments.Verify(
+                payment => payment.Refund(
+                    It.IsAny<int>(),
+                    It.IsAny<decimal>(),
+                    It.IsAny<string>()),
+                Times.Never);
+        }
+
+        if (expectedCharge > 0)
+        {
+            fixture.Payments.Verify(
+                payment => payment.Charge(
+                    1,
+                    expectedCharge,
+                    "Cancellation DN-TEST"),
+                Times.Once);
+        }
+        else
+        {
+            fixture.Payments.Verify(
+                payment => payment.Charge(
+                    It.IsAny<int>(),
+                    It.IsAny<decimal>(),
+                    It.IsAny<string>()),
+                Times.Never);
+        }
+    }
 
     private sealed class CancellationFixture
     {

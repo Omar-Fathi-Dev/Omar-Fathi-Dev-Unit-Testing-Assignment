@@ -1189,7 +1189,49 @@ public class BookingServiceTests
         Assert.Equal(BookingStatus.Reserved, result.Status);
     }
     
-    
+    [Theory]
+    [InlineData(-61, false)]
+    [InlineData(-60, true)]
+    [InlineData(-59, true)]
+    [Trait("Rule", "BR-28")]
+    public void StartRental_PickupTimeBoundary_EnforcesOneHourRule(int minutesBeforePickup, bool shouldStart)
+    {
+        BookingServiceTestFixture fixture = new();
+
+        DateTime pickupAt = new(2026, 11, 10, 10, 0, 0);
+        DateTime now = pickupAt.AddMinutes(minutesBeforePickup);
+
+        DateTimeOffset localTime = new(DateTime.SpecifyKind(now, DateTimeKind.Unspecified), TimeZoneInfo.Local.GetUtcOffset(now));
+
+        fixture.TimeProvider = new FixedTimeProvider(localTime.ToUniversalTime());
+
+        Booking booking = new()
+        {
+            Id = 1,
+            Reference = "DN-TEST",
+            PickupAt = pickupAt,
+            Status = BookingStatus.Reserved
+        };
+
+        fixture.Bookings.Data.Add(booking);
+
+        BookingService sut = fixture.CreateSut();
+
+        if (shouldStart)
+        {
+            sut.StartRental(1);
+            Assert.Equal(BookingStatus.Active, booking.Status);
+        }
+        else
+        {
+            InvalidBookingStateException exception =
+                Assert.Throws<InvalidBookingStateException>(
+                    () => sut.StartRental(1));
+
+            Assert.Equal("Too early to start this rental", exception.Message);
+            Assert.Equal(BookingStatus.Reserved, booking.Status);
+        }
+    }
     
     
     
