@@ -1,0 +1,15 @@
+﻿{
+  Reference: DN-20261110-AB12,
+  CustomerId: 1,
+  VehicleId: 1,
+  PickupAt: DateTime_1,
+  ReturnAt: DateTime_2,
+  Price: {
+    RentalDays: 2,
+    BaseAmount: 2000.0,
+    Total: 2000.00
+  },
+  Deposit: 1000.0,
+  CreatedAt: DateTime_3,
+  StartMileage: 50000
+}
