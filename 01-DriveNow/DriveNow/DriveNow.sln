@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DriveNow.LegacyTests", "tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DriveNow.UnitTests", "tests\DriveNow.UnitTests\DriveNow.UnitTests.csproj", "{39E47B60-04E8-495B-AC02-F1755B1086C0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DriveNow.ArchitectureTests", "tests\DriveNow.ArchitectureTests\DriveNow.ArchitectureTests.csproj", "{85BA278C-9C5C-467A-A103-87437CF4D0C9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Release|Any CPU = Release|Any CPU
@@ -62,6 +64,12 @@ Global
 		{39E47B60-04E8-495B-AC02-F1755B1086C0}.Release|x64.Build.0 = Release|Any CPU
 		{39E47B60-04E8-495B-AC02-F1755B1086C0}.Release|x86.ActiveCfg = Release|Any CPU
 		{39E47B60-04E8-495B-AC02-F1755B1086C0}.Release|x86.Build.0 = Release|Any CPU
+		{85BA278C-9C5C-467A-A103-87437CF4D0C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{85BA278C-9C5C-467A-A103-87437CF4D0C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{85BA278C-9C5C-467A-A103-87437CF4D0C9}.Release|x64.ActiveCfg = Release|Any CPU
+		{85BA278C-9C5C-467A-A103-87437CF4D0C9}.Release|x64.Build.0 = Release|Any CPU
+		{85BA278C-9C5C-467A-A103-87437CF4D0C9}.Release|x86.ActiveCfg = Release|Any CPU
+		{85BA278C-9C5C-467A-A103-87437CF4D0C9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -73,6 +81,7 @@ Global
 		{B837193E-248F-492A-8337-142DFE864DBE} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{D86F575D-EA25-4383-A8D9-52C0EBE8BEEF} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{39E47B60-04E8-495B-AC02-F1755B1086C0} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{85BA278C-9C5C-467A-A103-87437CF4D0C9} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal
 
