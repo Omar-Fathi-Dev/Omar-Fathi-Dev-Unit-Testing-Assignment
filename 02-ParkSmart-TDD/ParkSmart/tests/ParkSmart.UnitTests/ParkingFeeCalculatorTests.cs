@@ -201,6 +201,52 @@ public class ParkingFeeCalculatorTests
     }
     
     
+    [Fact]
+    public void Calculate_EvCharging_AddsChargingCostAfterParkingFee()
+    {
+        ParkingSession session = CreateSession(120);
+        session.ChargedKwh = 10m;
+
+        ParkingFeeCalculator calculator = new ParkingFeeCalculator();
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(55m);
+    }
+
+    [Fact]
+    public void Calculate_SubscriberFreeParkingWithEvCharging_DoesNotDiscountChargingCost()
+    {
+        DateTime entryTime = new DateTime(2026, 11, 2, 9, 0, 0);
+        ParkingSession session = new ParkingSession
+        {
+            EntryTime = entryTime,
+            ExitTime = entryTime.AddHours(8),
+            IsSubscriber = true,
+            ChargedKwh = 4m
+        };
+
+        ParkingFeeCalculator calculator = new ParkingFeeCalculator();
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(14m);
+    }
+
+    [Fact]
+    public void Calculate_NegativeChargedKwh_ThrowsArgumentException()
+    {
+        ParkingSession session = CreateSession(120);
+        session.ChargedKwh = -1m;
+
+        ParkingFeeCalculator calculator = new ParkingFeeCalculator();
+
+        Action act = () => calculator.Calculate(session);
+
+        act.Should().Throw<ArgumentException>();
+    }
+    
+    
     
     
     
