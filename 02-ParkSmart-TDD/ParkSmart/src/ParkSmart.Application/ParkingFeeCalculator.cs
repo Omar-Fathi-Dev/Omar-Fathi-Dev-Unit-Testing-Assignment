@@ -5,9 +5,7 @@ namespace ParkSmart.Application;
 public class ParkingFeeCalculator
 {
     private const int FreeParkingDurationInMinutes = 15;
-    private const decimal HourlyRate = 10m;
     private const int DailyBlockDurationInMinutes = 1440;
-    private const decimal DailyCap = 80m;
 
     public decimal Calculate(ParkingSession session)
     {
@@ -24,6 +22,27 @@ public class ParkingFeeCalculator
             return 0m;
         }
 
+        decimal hourlyRate;
+        decimal dailyCap;
+
+        switch (session.Vehicle)
+        {
+            case VehicleType.Motorcycle:
+                hourlyRate = 5m;
+                dailyCap = 40m;
+                break;
+
+            case VehicleType.Truck:
+                hourlyRate = 25m;
+                dailyCap = 200m;
+                break;
+
+            default:
+                hourlyRate = 10m;
+                dailyCap = 80m;
+                break;
+        }
+
         int remainingMinutes = (int)parkingDuration.TotalMinutes;
         decimal totalFee = 0m;
 
@@ -33,21 +52,16 @@ public class ParkingFeeCalculator
                 remainingMinutes,
                 DailyBlockDurationInMinutes);
 
-            totalFee += CalculateBlockFee(currentBlockMinutes);
+            decimal startedHours = (decimal)Math.Ceiling(
+                currentBlockMinutes / 60m);
+
+            decimal blockFee = startedHours * hourlyRate;
+
+            totalFee += Math.Min(blockFee, dailyCap);
 
             remainingMinutes -= currentBlockMinutes;
         }
 
         return totalFee;
-    }
-
-    private static decimal CalculateBlockFee(int durationInMinutes)
-    {
-        decimal startedHours = (decimal)Math.Ceiling(
-            durationInMinutes / 60m);
-
-        decimal blockFee = startedHours * HourlyRate;
-
-        return Math.Min(blockFee, DailyCap);
     }
 }
