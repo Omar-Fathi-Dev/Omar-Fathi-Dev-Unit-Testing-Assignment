@@ -1,4 +1,5 @@
-﻿using ParkSmart.Domain;
+﻿
+using ParkSmart.Domain;
 
 namespace ParkSmart.Application;
 
@@ -12,24 +13,25 @@ public class ParkingFeeCalculator
     {
         if (session.ExitTime < session.EntryTime)
         {
-            throw new ArgumentException(
-                "Exit time must be after entry time.");
+            throw new ArgumentException("Exit time must be after entry time.");
+        }
+
+        if (session.ChargedKwh < 0)
+        {
+            throw new ArgumentException("Charging kWh cannot be negative.");
         }
 
         TimeSpan parkingDuration = session.ExitTime - session.EntryTime;
 
         int freeParkingDuration = GetFreeParkingDuration(session.EntryTime);
 
-        if (!session.TicketLost &&
-            parkingDuration.TotalMinutes <= freeParkingDuration)
+        if (!session.TicketLost && parkingDuration.TotalMinutes <= freeParkingDuration)
         {
-            return 0m;
+            return session.ChargedKwh * 3.50m;
         }
 
-        (decimal hourlyRate,
-         decimal dailyCap,
-         decimal nightFlatRate,
-         decimal lostTicketMinimum) = GetVehiclePricing(session.Vehicle);
+        (decimal hourlyRate, decimal dailyCap, decimal nightFlatRate, decimal lostTicketMinimum) =
+            GetVehiclePricing(session.Vehicle);
 
         int remainingMinutes = (int)parkingDuration.TotalMinutes;
         decimal totalFee = 0m;
@@ -40,13 +42,10 @@ public class ParkingFeeCalculator
                 remainingMinutes,
                 DailyBlockDurationInMinutes);
 
-            decimal startedHours = (decimal)Math.Ceiling(
-                currentBlockMinutes / 60m);
+            decimal startedHours = (decimal)Math.Ceiling(currentBlockMinutes / 60m);
 
             decimal blockFee = startedHours * hourlyRate;
-
             totalFee += Math.Min(blockFee, dailyCap);
-
             remainingMinutes -= currentBlockMinutes;
         }
 
@@ -62,6 +61,8 @@ public class ParkingFeeCalculator
             totalFee = Math.Max(totalFee, lostTicketMinimum);
         }
 
+        totalFee += session.ChargedKwh * 3.50m;
+
         return totalFee;
     }
 
@@ -72,11 +73,8 @@ public class ParkingFeeCalculator
             : FreeParkingDurationInMinutes;
     }
 
-    private static (
-        decimal HourlyRate,
-        decimal DailyCap,
-        decimal NightFlatRate,
-        decimal LostTicketMinimum) GetVehiclePricing(VehicleType vehicle)
+    private static (decimal HourlyRate, decimal DailyCap, decimal NightFlatRate, decimal LostTicketMinimum)
+        GetVehiclePricing(VehicleType vehicle)
     {
         return vehicle switch
         {
@@ -102,9 +100,7 @@ public class ParkingFeeCalculator
                session.ExitTime.TimeOfDay <= TimeSpan.FromHours(19);
     }
 
-    private static decimal ApplySubscriberPricing(
-        ParkingSession session,
-        decimal normalFee)
+    private static decimal ApplySubscriberPricing(ParkingSession session, decimal normalFee)
     {
         if (!session.IsSubscriber)
         {
