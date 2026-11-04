@@ -208,6 +208,91 @@ public class ParkingFeeCalculatorTests
     }
     
     
+    [Fact]
+    public void Calculate_SubscriberParkingWithinFreeWindow_ReturnsZero()
+    {
+        ParkingFeeCalculator calculator = new();
+
+        DateTime entryTime = new(2026, 1, 5, 9, 0, 0);
+
+        ParkingSession session = new()
+        {
+            EntryTime = entryTime,
+            ExitTime = entryTime.AddHours(8),
+            IsSubscriber = true
+        };
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(0m);
+    }
+    
+    
+    [Fact]
+    public void Calculate_SubscriberParkingOutsideFreeWindow_AppliesFiftyPercentDiscount()
+    {
+        ParkingFeeCalculator calculator = new();
+
+        DateTime entryTime = new(2026, 1, 5, 18, 0, 0);
+
+        ParkingSession session = new()
+        {
+            EntryTime = entryTime,
+            ExitTime = entryTime.AddHours(2),
+            IsSubscriber = true
+        };
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(10m);
+    }
+    
+    [Fact]
+    public void Calculate_SubscriberParkingOnSaturday_AppliesFiftyPercentDiscount()
+    {
+        ParkingFeeCalculator calculator = new();
+
+        DateTime entryTime = new(2026, 1, 10, 10, 0, 0);
+
+        ParkingSession session = new()
+        {
+            EntryTime = entryTime,
+            ExitTime = entryTime.AddHours(3),
+            IsSubscriber = true
+        };
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(15m);
+    }
+    
+    
+    [Fact]
+    public void Calculate_SubscriberWithLostTicket_AppliesMinimumAfterDiscount()
+    {
+        ParkingFeeCalculator calculator = new();
+
+        DateTime entryTime = new(2026, 1, 5, 20, 0, 0);
+
+        ParkingSession session = new()
+        {
+            EntryTime = entryTime,
+            ExitTime = entryTime.AddHours(1),
+            IsSubscriber = true,
+            TicketLost = true
+        };
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(150m);
+    }
+    
+    
+    
+    
+    
+    
+    
     
     
     
