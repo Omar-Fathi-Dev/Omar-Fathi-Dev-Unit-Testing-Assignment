@@ -554,12 +554,13 @@ public class BookingServiceTests
     }
     
     
+    
+    
     [Fact]
     [Trait("Rule", "BR-21")]
     public void CreateBooking_StartsWhenPreviousBookingEnds_AllowsBooking()
     {
         BookingServiceTestFixture fixture = new();
-
         fixture.Customers.Data[1] = new Customer
         {
             Id = 1,
@@ -567,14 +568,12 @@ public class BookingServiceTests
             LicenseIssueDate = new DateTime(2020, 1, 1),
             IsBlacklisted = false
         };
-
         fixture.Vehicles.Data[1] = new Vehicle
         {
             Id = 1,
             Category = VehicleCategory.Economy,
             IsAvailable = true
         };
-
         fixture.Bookings.Data.Add(new Booking
         {
             CustomerId = 2,
@@ -585,7 +584,6 @@ public class BookingServiceTests
         });
 
         BookingService sut = fixture.CreateSut();
-
         BookingRequest request = new()
         {
             CustomerId = 1,
@@ -594,12 +592,10 @@ public class BookingServiceTests
             ReturnAt = new DateTime(2026, 11, 14, 10, 0, 0)
         };
 
-        Exception? exception = Record.Exception(
-            () => sut.CreateBooking(request));
-
+        Exception? exception = Record.Exception(() => sut.CreateBooking(request));
         Assert.Null(exception);
     }
-    
+
     [Fact]
     [Trait("Rule", "BR-22")]
     public void CreateBooking_CustomerHasTwoOpenBookings_ThrowsBookingRejectedException()
