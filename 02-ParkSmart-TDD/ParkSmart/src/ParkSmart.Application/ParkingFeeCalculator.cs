@@ -23,8 +23,10 @@ public class ParkingFeeCalculator
             return 0m;
         }
 
-        (decimal hourlyRate, decimal dailyCap) =
-            GetVehiclePricing(session.Vehicle);
+        (decimal hourlyRate,
+         decimal dailyCap,
+         decimal nightFlatRate,
+         decimal lostTicketMinimum) = GetVehiclePricing(session.Vehicle);
 
         int remainingMinutes = (int)parkingDuration.TotalMinutes;
         decimal totalFee = 0m;
@@ -47,49 +49,28 @@ public class ParkingFeeCalculator
 
         if (IsNightParking(session))
         {
-            decimal nightFlatRate = GetNightFlatRate(session.Vehicle);
-
             totalFee = Math.Min(totalFee, nightFlatRate);
         }
 
         if (session.TicketLost)
         {
-            decimal minimumFee = GetLostTicketMinimum(session.Vehicle);
-
-            totalFee = Math.Max(totalFee, minimumFee);
+            totalFee = Math.Max(totalFee, lostTicketMinimum);
         }
 
         return totalFee;
     }
 
-    private static (decimal HourlyRate, decimal DailyCap) GetVehiclePricing(
-        VehicleType vehicle)
+    private static (
+        decimal HourlyRate,
+        decimal DailyCap,
+        decimal NightFlatRate,
+        decimal LostTicketMinimum) GetVehiclePricing(VehicleType vehicle)
     {
         return vehicle switch
         {
-            VehicleType.Motorcycle => (5m, 40m),
-            VehicleType.Truck => (25m, 200m),
-            _ => (10m, 80m)
-        };
-    }
-
-    private static decimal GetNightFlatRate(VehicleType vehicle)
-    {
-        return vehicle switch
-        {
-            VehicleType.Motorcycle => 15m,
-            VehicleType.Truck => 75m,
-            _ => 30m
-        };
-    }
-
-    private static decimal GetLostTicketMinimum(VehicleType vehicle)
-    {
-        return vehicle switch
-        {
-            VehicleType.Motorcycle => 75m,
-            VehicleType.Truck => 300m,
-            _ => 150m
+            VehicleType.Motorcycle => (5m, 40m, 15m, 75m),
+            VehicleType.Truck => (25m, 200m, 75m, 300m),
+            _ => (10m, 80m, 30m, 150m)
         };
     }
 
