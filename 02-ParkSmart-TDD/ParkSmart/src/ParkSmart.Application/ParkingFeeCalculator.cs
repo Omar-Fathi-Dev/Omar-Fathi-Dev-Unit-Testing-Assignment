@@ -4,7 +4,7 @@ namespace ParkSmart.Application;
 
 public class ParkingFeeCalculator
 {
-    const int FreeParkingDurationInMinutes = 15;
+    private const int FreeParkingDurationInMinutes = 15;
 
     public decimal Calculate(ParkingSession session)
     {
@@ -15,6 +15,9 @@ public class ParkingFeeCalculator
             return 0m;
         }
 
-        return 10m;
+        decimal startedHours = (decimal)Math.Ceiling(
+            parkingDuration.TotalMinutes / 60);
+
+        return startedHours * 10m;
     }
 }
