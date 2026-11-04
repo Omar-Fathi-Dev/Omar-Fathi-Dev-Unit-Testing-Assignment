@@ -55,6 +55,18 @@ public class ParkingFeeCalculator
             totalFee = Math.Min(totalFee, nightFlatRate);
         }
 
+        if (session.IsSubscriber)
+        {
+            if (IsSubscriberFreeParking(session))
+            {
+                totalFee = 0m;
+            }
+            else
+            {
+                totalFee *= 0.5m;
+            }
+        }
+
         if (session.TicketLost)
         {
             totalFee = Math.Max(totalFee, lostTicketMinimum);
@@ -89,5 +101,14 @@ public class ParkingFeeCalculator
         return session.EntryTime.TimeOfDay >= TimeSpan.FromHours(22) &&
                session.ExitTime.Date == session.EntryTime.Date.AddDays(1) &&
                session.ExitTime.TimeOfDay <= TimeSpan.FromHours(8);
+    }
+
+    private static bool IsSubscriberFreeParking(ParkingSession session)
+    {
+        return session.EntryTime.Date == session.ExitTime.Date &&
+               session.EntryTime.DayOfWeek >= DayOfWeek.Sunday &&
+               session.EntryTime.DayOfWeek <= DayOfWeek.Thursday &&
+               session.EntryTime.TimeOfDay >= TimeSpan.FromHours(7) &&
+               session.ExitTime.TimeOfDay <= TimeSpan.FromHours(19);
     }
 }
