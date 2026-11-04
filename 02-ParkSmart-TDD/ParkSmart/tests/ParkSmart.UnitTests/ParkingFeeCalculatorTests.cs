@@ -49,6 +49,34 @@ public class ParkingFeeCalculatorTests
         result.Should().Be(expectedFee);
     }
     
+    [Fact]
+    public void Calculate_ExitTimeEqualsEntryTime_ReturnsZero()
+    {
+        ParkingFeeCalculator calculator = new();
+
+        ParkingSession session = CreateSession(0);
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(0m);
+    }
+    
+    
+    [Fact]
+    public void Calculate_ExitTimeBeforeEntryTime_ThrowsArgumentException()
+    {
+        ParkingFeeCalculator calculator = new();
+
+        ParkingSession session = CreateSession(0);
+        session.ExitTime = session.EntryTime.AddMinutes(-1);
+
+        Action act = () => calculator.Calculate(session);
+
+        act.Should()
+            .Throw<ArgumentException>()
+            .WithMessage("Exit time must be after entry time.");
+    }
+    
     
     
     
