@@ -4,11 +4,13 @@ namespace ParkSmart.Application;
 
 public class ParkingFeeCalculator
 {
+    const int FreeParkingDurationInMinutes = 15;
+
     public decimal Calculate(ParkingSession session)
     {
         TimeSpan parkingDuration = session.ExitTime - session.EntryTime;
 
-        if (parkingDuration.TotalMinutes <= 15)
+        if (parkingDuration.TotalMinutes <= FreeParkingDurationInMinutes)
         {
             return 0m;
         }
