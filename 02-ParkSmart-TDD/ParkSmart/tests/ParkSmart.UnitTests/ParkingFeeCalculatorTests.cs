@@ -170,7 +170,35 @@ public class ParkingFeeCalculatorTests
     }
     
     
-    
+    [Theory]
+    [InlineData(2026, 11, 2, 9, 0, 480, false, 0)]
+    [InlineData(2026, 11, 2, 18, 0, 120, false, 10)]
+    [InlineData(2026, 11, 7, 10, 0, 180, false, 15)]
+    [InlineData(2026, 11, 2, 10, 0, 60, true, 150)]
+    public void Calculate_SubscriberParking_AppliesDiscountAndLostTicketMinimum(
+        int year,
+        int month,
+        int day,
+        int entryHour,
+        int entryMinute,
+        int durationInMinutes,
+        bool ticketLost,
+        decimal expectedFee)
+    {
+        DateTime entryTime = new DateTime(year, month, day, entryHour, entryMinute, 0);
+        ParkingSession session = new ParkingSession
+        {
+            EntryTime = entryTime,
+            ExitTime = entryTime.AddMinutes(durationInMinutes),
+            IsSubscriber = true,
+            TicketLost = ticketLost
+        };
+        ParkingFeeCalculator calculator = new ParkingFeeCalculator();
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(expectedFee);
+    }
     
     
     
