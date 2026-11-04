@@ -18,9 +18,7 @@ public class ParkingFeeCalculator
 
         TimeSpan parkingDuration = session.ExitTime - session.EntryTime;
 
-        int freeParkingDuration = session.EntryTime.DayOfWeek == DayOfWeek.Friday
-            ? FridayFreeParkingDurationInMinutes
-            : FreeParkingDurationInMinutes;
+        int freeParkingDuration = GetFreeParkingDuration(session.EntryTime);
 
         if (!session.TicketLost &&
             parkingDuration.TotalMinutes <= freeParkingDuration)
@@ -63,6 +61,13 @@ public class ParkingFeeCalculator
         }
 
         return totalFee;
+    }
+
+    private static int GetFreeParkingDuration(DateTime entryTime)
+    {
+        return entryTime.DayOfWeek == DayOfWeek.Friday
+            ? FridayFreeParkingDurationInMinutes
+            : FreeParkingDurationInMinutes;
     }
 
     private static (
