@@ -44,15 +44,10 @@ public class ParkingFeeCalculator
             remainingMinutes -= currentBlockMinutes;
         }
 
-        decimal nightFlatRate = GetNightFlatRate(session.Vehicle);
-
-        bool isNightParking =
-            session.EntryTime.TimeOfDay >= TimeSpan.FromHours(22) &&
-            session.ExitTime.Date == session.EntryTime.Date.AddDays(1) &&
-            session.ExitTime.TimeOfDay <= TimeSpan.FromHours(8);
-
-        if (isNightParking)
+        if (IsNightParking(session))
         {
+            decimal nightFlatRate = GetNightFlatRate(session.Vehicle);
+
             return Math.Min(totalFee, nightFlatRate);
         }
 
@@ -78,5 +73,12 @@ public class ParkingFeeCalculator
             VehicleType.Truck => 75m,
             _ => 30m
         };
+    }
+
+    private static bool IsNightParking(ParkingSession session)
+    {
+        return session.EntryTime.TimeOfDay >= TimeSpan.FromHours(22) &&
+               session.ExitTime.Date == session.EntryTime.Date.AddDays(1) &&
+               session.ExitTime.TimeOfDay <= TimeSpan.FromHours(8);
     }
 }
