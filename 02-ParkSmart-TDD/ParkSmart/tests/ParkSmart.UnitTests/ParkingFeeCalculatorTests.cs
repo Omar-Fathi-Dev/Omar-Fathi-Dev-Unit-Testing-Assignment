@@ -103,6 +103,33 @@ public class ParkingFeeCalculatorTests
     }
     
     
+    [Theory]
+    [InlineData(23, 0, 7, 0, 30)]
+    [InlineData(22, 0, 23, 0, 10)]
+    [InlineData(21, 59, 7, 0, 80)]
+    [InlineData(23, 0, 8, 1, 80)]
+    public void Calculate_NightParking_ReturnsLowerOfNormalAndFlatRate(int entryHour, int entryMinute, int exitHour, int exitMinute, decimal expectedFee)
+    {
+        DateTime entryTime = new DateTime(2026, 11, 1, entryHour, entryMinute, 0);
+
+        DateTime exitTime = new DateTime(2026, 11, 1, exitHour, exitMinute, 0);
+
+        if (exitTime <= entryTime)
+        {
+            exitTime = exitTime.AddDays(1);
+        }
+        ParkingSession session = new ParkingSession
+        {
+            EntryTime = entryTime,
+            ExitTime = exitTime
+        };
+        ParkingFeeCalculator calculator = new ParkingFeeCalculator();
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(expectedFee);
+    }
+    
     
     
     
