@@ -44,6 +44,18 @@ public class ParkingFeeCalculator
             remainingMinutes -= currentBlockMinutes;
         }
 
+        decimal nightFlatRate = GetNightFlatRate(session.Vehicle);
+
+        bool isNightParking =
+            session.EntryTime.TimeOfDay >= TimeSpan.FromHours(22) &&
+            session.ExitTime.Date == session.EntryTime.Date.AddDays(1) &&
+            session.ExitTime.TimeOfDay <= TimeSpan.FromHours(8);
+
+        if (isNightParking)
+        {
+            return Math.Min(totalFee, nightFlatRate);
+        }
+
         return totalFee;
     }
 
@@ -55,6 +67,16 @@ public class ParkingFeeCalculator
             VehicleType.Motorcycle => (5m, 40m),
             VehicleType.Truck => (25m, 200m),
             _ => (10m, 80m)
+        };
+    }
+
+    private static decimal GetNightFlatRate(VehicleType vehicle)
+    {
+        return vehicle switch
+        {
+            VehicleType.Motorcycle => 15m,
+            VehicleType.Truck => 75m,
+            _ => 30m
         };
     }
 }
