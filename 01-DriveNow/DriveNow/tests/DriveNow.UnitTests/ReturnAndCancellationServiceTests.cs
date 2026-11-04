@@ -287,6 +287,8 @@ public class CancellationServiceTests
     private static readonly DateTime Pickup =
         new(2026, 11, 10, 10, 0, 0);
 
+    
+    
     [Theory]
     [InlineData(48, 1, 0)]
     [InlineData(48, 0, 0)]
@@ -295,16 +297,11 @@ public class CancellationServiceTests
     [InlineData(24, 0, 500)]
     [InlineData(23, 59, 1000)]
     [Trait("Rule", "BR-51")]
-    public void Cancel_TimeBeforePickupBoundary_CalculatesCancellationFee(
-        int hours,
-        int minutes,
-        decimal expectedFee)
+    public void Cancel_TimeBeforePickupBoundary_CalculatesCancellationFee(int hours, int minutes, decimal expectedFee)
     {
         CancellationFixture fixture = new();
         fixture.SetNow(Pickup.AddHours(-hours).AddMinutes(-minutes));
-
         decimal fee = fixture.Sut.Cancel(1);
-
         Assert.Equal(expectedFee, fee);
     }
 
