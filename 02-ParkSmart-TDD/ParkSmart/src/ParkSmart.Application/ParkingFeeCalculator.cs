@@ -33,16 +33,21 @@ public class ParkingFeeCalculator
                 remainingMinutes,
                 DailyBlockDurationInMinutes);
 
-            decimal startedHours = (decimal)Math.Ceiling(
-                currentBlockMinutes / 60m);
-
-            decimal blockFee = startedHours * HourlyRate;
-
-            totalFee += Math.Min(blockFee, DailyCap);
+            totalFee += CalculateBlockFee(currentBlockMinutes);
 
             remainingMinutes -= currentBlockMinutes;
         }
 
         return totalFee;
+    }
+
+    private static decimal CalculateBlockFee(int durationInMinutes)
+    {
+        decimal startedHours = (decimal)Math.Ceiling(
+            durationInMinutes / 60m);
+
+        decimal blockFee = startedHours * HourlyRate;
+
+        return Math.Min(blockFee, DailyCap);
     }
 }
