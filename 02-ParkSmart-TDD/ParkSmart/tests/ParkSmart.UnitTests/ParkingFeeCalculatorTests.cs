@@ -33,6 +33,23 @@ public class ParkingFeeCalculatorTests
     }
     
     
+    [Theory]
+    [InlineData(16, 10)]
+    [InlineData(60, 10)]
+    [InlineData(61, 20)]
+    [InlineData(180, 30)]
+    public void Calculate_ParkingDuration_ReturnsFeePerStartedHour(int durationInMinutes, decimal expectedFee)
+    {
+        ParkingFeeCalculator calculator = new();
+
+        ParkingSession session = CreateSession(durationInMinutes);
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(expectedFee);
+    }
+    
+    
     
     
     
