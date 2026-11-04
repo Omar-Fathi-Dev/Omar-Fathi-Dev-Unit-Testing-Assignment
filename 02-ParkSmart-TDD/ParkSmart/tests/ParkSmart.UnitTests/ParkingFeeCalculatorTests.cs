@@ -94,6 +94,27 @@ public class ParkingFeeCalculatorTests
         result.Should().Be(expectedFee);
     }
     
+    [Theory]
+    [InlineData(VehicleType.Motorcycle, 180, 15)]
+    [InlineData(VehicleType.Truck, 600, 200)]
+    [InlineData(VehicleType.Truck, 1800, 350)]
+    public void Calculate_VehicleType_ReturnsCorrectFee(VehicleType vehicle, int durationInMinutes, decimal expectedFee)
+    {
+        ParkingFeeCalculator calculator = new();
+
+        ParkingSession session = CreateSession(durationInMinutes);
+        session.Vehicle = vehicle;
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(expectedFee);
+    }
+    
+    
+    
+    
+    
+    
     
     
     
