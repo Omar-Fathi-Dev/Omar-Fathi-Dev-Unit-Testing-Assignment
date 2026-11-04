@@ -111,6 +111,41 @@ public class ParkingFeeCalculatorTests
     }
     
     
+    [Theory]
+    [InlineData(23, 0, 1, 7, 0, VehicleType.Car, 30)]
+    [InlineData(23, 0, 1, 7, 0, VehicleType.Motorcycle, 15)]
+    [InlineData(23, 0, 1, 7, 0, VehicleType.Truck, 75)]
+    [InlineData(22, 0, 0, 23, 0, VehicleType.Car, 10)]
+    [InlineData(21, 59, 1, 7, 0, VehicleType.Car, 80)]
+    [InlineData(23, 0, 1, 8, 1, VehicleType.Car, 80)]
+    public void Calculate_NightParking_ReturnsLowerOfNormalAndFlatRate(
+        int entryHour,
+        int entryMinute,
+        int exitDayOffset,
+        int exitHour,
+        int exitMinute,
+        VehicleType vehicle,
+        decimal expectedFee)
+    {
+        ParkingFeeCalculator calculator = new();
+
+        DateTime entryTime = new(2026, 1, 5, entryHour, entryMinute, 0);
+
+        ParkingSession session = new()
+        {
+            EntryTime = entryTime,
+            ExitTime = entryTime.Date
+                .AddDays(exitDayOffset)
+                .AddHours(exitHour)
+                .AddMinutes(exitMinute),
+            Vehicle = vehicle
+        };
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(expectedFee);
+    }
+    
     
     
     
