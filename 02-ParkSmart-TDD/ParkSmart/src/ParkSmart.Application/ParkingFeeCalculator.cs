@@ -4,22 +4,18 @@ namespace ParkSmart.Application;
 
 public class ParkingFeeCalculator
 {
-    public decimal Calculate(ParkingSession session)
+   public decimal Calculate(ParkingSession session)
     {
         if (session.ExitTime < session.EntryTime)
         {
             throw new ArgumentException("Exit time must be after entry time.");
         }
-        
-        TimeSpan duration = session.ExitTime - session.EntryTime;
 
-        if (duration <= TimeSpan.FromMinutes(15))
-        {
-            return 0m;
-        }
+        TimeSpan duration = session.ExitTime - session.EntryTime;
         decimal hourlyRate;
         decimal dailyCap;
         decimal nightFlatRate;
+        decimal lostTicketMinimum;
 
         switch (session.Vehicle)
         {
@@ -27,19 +23,27 @@ public class ParkingFeeCalculator
                 hourlyRate = 5m;
                 dailyCap = 40m;
                 nightFlatRate = 15m;
+                lostTicketMinimum = 75m;
                 break;
 
             case VehicleType.Truck:
                 hourlyRate = 25m;
                 dailyCap = 200m;
                 nightFlatRate = 75m;
+                lostTicketMinimum = 300m;
                 break;
 
             default:
                 hourlyRate = 10m;
                 dailyCap = 80m;
                 nightFlatRate = 30m;
+                lostTicketMinimum = 150m;
                 break;
+        }
+
+        if (duration <= TimeSpan.FromMinutes(15) && !session.TicketLost)
+        {
+            return 0m;
         }
 
         int startedHours = (int)Math.Ceiling(duration.TotalHours);
@@ -53,14 +57,14 @@ public class ParkingFeeCalculator
         }
 
         DateTime nightEndTime = session.EntryTime.Date.AddDays(1).AddHours(8);
-
         bool isNightParking = session.EntryTime.TimeOfDay >= TimeSpan.FromHours(22) && session.ExitTime <= nightEndTime;
+        decimal fee = isNightParking ? Math.Min(normalFee, nightFlatRate) : normalFee;
 
-        if (isNightParking)
+        if (session.TicketLost)
         {
-            return Math.Min(normalFee, nightFlatRate);
+            fee = Math.Max(fee, lostTicketMinimum);
         }
 
-        return normalFee;
+        return fee;
     }
 }
