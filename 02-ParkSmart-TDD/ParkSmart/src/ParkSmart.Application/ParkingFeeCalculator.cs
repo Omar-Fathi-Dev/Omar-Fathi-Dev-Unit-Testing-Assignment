@@ -55,17 +55,7 @@ public class ParkingFeeCalculator
             totalFee = Math.Min(totalFee, nightFlatRate);
         }
 
-        if (session.IsSubscriber)
-        {
-            if (IsSubscriberFreeParking(session))
-            {
-                totalFee = 0m;
-            }
-            else
-            {
-                totalFee *= 0.5m;
-            }
-        }
+        totalFee = ApplySubscriberPricing(session, totalFee);
 
         if (session.TicketLost)
         {
@@ -110,5 +100,22 @@ public class ParkingFeeCalculator
                session.EntryTime.DayOfWeek <= DayOfWeek.Thursday &&
                session.EntryTime.TimeOfDay >= TimeSpan.FromHours(7) &&
                session.ExitTime.TimeOfDay <= TimeSpan.FromHours(19);
+    }
+
+    private static decimal ApplySubscriberPricing(
+        ParkingSession session,
+        decimal normalFee)
+    {
+        if (!session.IsSubscriber)
+        {
+            return normalFee;
+        }
+
+        if (IsSubscriberFreeParking(session))
+        {
+            return 0m;
+        }
+
+        return normalFee * 0.5m;
     }
 }
