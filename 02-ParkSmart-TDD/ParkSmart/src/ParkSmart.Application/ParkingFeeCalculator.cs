@@ -12,7 +12,7 @@ public class ParkingFeeCalculator
         {
             return 0m;
         }
-
-        return 1m;
+        double startedHours = Math.Ceiling(duration.TotalHours);
+        return (decimal)startedHours * 10m;
     }
 }
