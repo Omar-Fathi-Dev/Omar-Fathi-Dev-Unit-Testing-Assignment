@@ -150,6 +150,35 @@ public class ParkingFeeCalculatorTests
     
     
     
+    [Theory]
+    [InlineData(6, 120, 0)]
+    [InlineData(6, 121, 30)]
+    [InlineData(5, 20, 10)]
+    public void Calculate_FridayFreePeriod_AppliesCorrectFee(int day, int minutes, decimal expectedFee)
+    {
+        DateTime entryTime = new DateTime(2026, 11, day, 10, 0, 0);
+        ParkingSession session = new ParkingSession
+        {
+            EntryTime = entryTime,
+            ExitTime = entryTime.AddMinutes(minutes)
+        };
+        ParkingFeeCalculator calculator = new ParkingFeeCalculator();
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(expectedFee);
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
 
     private static ParkingSession CreateSession(int durationInMinutes)
