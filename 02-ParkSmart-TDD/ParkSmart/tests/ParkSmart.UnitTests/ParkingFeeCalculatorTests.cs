@@ -169,6 +169,46 @@ public class ParkingFeeCalculatorTests
     
     
     
+    [Theory]
+    [InlineData(120, 0)]
+    [InlineData(121, 30)]
+    public void Calculate_FridayParking_AppliesTwoHourFreePeriod(int durationInMinutes,decimal expectedFee)
+    {
+        ParkingFeeCalculator calculator = new();
+
+        DateTime friday = new(2026, 1, 9, 10, 0, 0);
+
+        ParkingSession session = new()
+        {
+            EntryTime = friday,
+            ExitTime = friday.AddMinutes(durationInMinutes)
+        };
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(expectedFee);
+    }
+
+    [Fact]
+    public void Calculate_ThursdayParking_DoesNotApplyFridayFreePeriod()
+    {
+        ParkingFeeCalculator calculator = new();
+
+        DateTime thursday = new(2026, 1, 8, 10, 0, 0);
+
+        ParkingSession session = new()
+        {
+            EntryTime = thursday,
+            ExitTime = thursday.AddMinutes(20)
+        };
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(10m);
+    }
+    
+    
+    
     
     
     
