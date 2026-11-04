@@ -162,6 +162,9 @@ public class PricingServiceTests
     }
     
     
+    
+    
+    
     [Theory]
     [Trait("Rule", "BR-33")]
     [InlineData(3, 0)]
@@ -169,16 +172,11 @@ public class PricingServiceTests
     [InlineData(7, 10)]
     [InlineData(13, 10)]
     [InlineData(14, 15)]
-    public void Calculate_Duration_ReturnsExpectedDiscount(
-        int rentalDays,
-        decimal expectedPercentage)
+    public void Calculate_Duration_ReturnsExpectedDiscount(int rentalDays, decimal expectedPercentage)
     {
-        Mock<IPromoCodeRepository> promoRepository =
-            new Mock<IPromoCodeRepository>();
+        Mock<IPromoCodeRepository> promoRepository = new Mock<IPromoCodeRepository>();
 
-        PricingService sut = new PricingService(
-            promoRepository.Object,
-            TimeProvider.System);
+        PricingService sut = new PricingService( promoRepository.Object, TimeProvider.System);
 
         DateTime pickup = new DateTime(2026, 11, 1, 10, 0, 0);
 
@@ -187,24 +185,19 @@ public class PricingServiceTests
             DateOfBirth = pickup.AddYears(-30),
             LoyaltyTier = LoyaltyTier.None
         };
-
         Vehicle vehicle = new Vehicle
         {
             DailyRate = 100m,
             Category = VehicleCategory.Economy
         };
-
         BookingRequest request = new BookingRequest
         {
             PickupAt = pickup,
             ReturnAt = pickup.AddDays(rentalDays),
             InsurancePlan = InsurancePlan.Basic
         };
-
         PriceBreakdown result = sut.Calculate(customer, vehicle, request);
-
         decimal expected = result.BaseAmount * expectedPercentage / 100m;
-
         result.DurationDiscount.Should().Be(expected);
     }
     
