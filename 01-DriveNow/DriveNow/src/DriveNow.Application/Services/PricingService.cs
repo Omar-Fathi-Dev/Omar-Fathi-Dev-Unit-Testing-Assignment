@@ -169,22 +169,15 @@ public class PricingService
         return Round(perDay * days);
     }
 
-    private static decimal DriverCost(
-        LoyaltyTier tier,
-        int additionalDrivers,
-        int days)
+    private static decimal DriverCost(LoyaltyTier tier, int additionalDrivers, int days)
     {
         int billable = additionalDrivers;
 
-        if (tier >= LoyaltyTier.Silver && billable > 0)
+        if (tier >= LoyaltyTier.Gold && billable > 0)
             billable--;
 
         return Round(100m * billable * days);
     }
 
-    private static decimal Round(decimal amount) =>
-        Math.Round(
-            amount,
-            2,
-            MidpointRounding.AwayFromZero);
+    private static decimal Round(decimal amount) => Math.Round(amount, 2, MidpointRounding.AwayFromZero);
 }
