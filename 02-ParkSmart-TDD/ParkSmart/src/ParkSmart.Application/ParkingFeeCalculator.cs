@@ -17,12 +17,33 @@ public class ParkingFeeCalculator
         {
             return 0m;
         }
+        decimal hourlyRate;
+        decimal dailyCap;
+
+        switch (session.Vehicle)
+        {
+            case VehicleType.Motorcycle:
+                hourlyRate = 5m;
+                dailyCap = 40m;
+                break;
+
+            case VehicleType.Truck:
+                hourlyRate = 25m;
+                dailyCap = 200m;
+                break;
+
+            default:
+                hourlyRate = 10m;
+                dailyCap = 80m;
+                break;
+        }
+
         int startedHours = (int)Math.Ceiling(duration.TotalHours);
         decimal totalFee = 0m;
         while (startedHours > 0)
         {
             int blockHours = Math.Min(startedHours, 24);
-            decimal blockFee = Math.Min(blockHours * 10m, 80m);
+            decimal blockFee = Math.Min(blockHours * hourlyRate, dailyCap);
             totalFee += blockFee;
             startedHours -= blockHours;
         }
