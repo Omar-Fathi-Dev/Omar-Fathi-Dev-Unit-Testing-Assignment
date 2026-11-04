@@ -13,6 +13,9 @@ public class ReturnServiceTests
     private static readonly DateTime PlannedReturn =
         new(2026, 11, 10, 10, 0, 0);
 
+    
+    
+    
     [Theory]
     [InlineData(59, 0)]
     [InlineData(60, 100)]
@@ -27,20 +30,16 @@ public class ReturnServiceTests
     [InlineData(2880, 2000)]
     [InlineData(2881, 3000)]
     [Trait("Rule", "BR-41")]
-    public void ProcessReturn_LateByBoundaryMinutes_CalculatesLateFee(
-        int lateMinutes,
-        decimal expectedFee)
+    public void ProcessReturn_LateByBoundaryMinutes_CalculatesLateFee(int lateMinutes,decimal expectedFee)
     {
         ReturnFixture fixture = new();
         fixture.SetNow(PlannedReturn.AddMinutes(lateMinutes));
-
-        ReturnReport report =
-            fixture.Sut.ProcessReturn(1, 50000, 4, 0m);
-
+        ReturnReport report = fixture.Sut.ProcessReturn(1, 50000, 4, 0m);
         Assert.Equal(lateMinutes, report.LateMinutes);
         Assert.Equal(expectedFee, report.LateFee);
     }
 
+    
     [Fact]
     [Trait("Rule", "BR-41")]
     public void ProcessReturn_EarlyReturn_DoesNotChargeLateFee()
