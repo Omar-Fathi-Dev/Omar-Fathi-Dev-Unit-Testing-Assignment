@@ -4,13 +4,17 @@ namespace ParkSmart.Application;
 
 public class ParkingFeeCalculator
 {
-    public decimal Calculate(ParkingSession session)
+     public decimal Calculate(ParkingSession session)
     {
         if (session.ExitTime < session.EntryTime)
         {
             throw new ArgumentException("Exit time must be after entry time.");
         }
 
+        if (session.ChargedKwh < 0)
+        {
+            throw new ArgumentException("Charged kWh cannot be negative.");
+        }
         TimeSpan duration = session.ExitTime - session.EntryTime;
         decimal hourlyRate;
         decimal dailyCap;
@@ -41,11 +45,9 @@ public class ParkingFeeCalculator
                 break;
         }
 
-        TimeSpan freePeriod = session.EntryTime.DayOfWeek == DayOfWeek.Friday
-            ? TimeSpan.FromHours(2)
-            : TimeSpan.FromMinutes(15);
-        decimal fee = 0m;
+        TimeSpan freePeriod = session.EntryTime.DayOfWeek == DayOfWeek.Friday ? TimeSpan.FromHours(2) : TimeSpan.FromMinutes(15);
 
+        decimal fee = 0m;
         if (duration > freePeriod || session.TicketLost)
         {
             int startedHours = (int)Math.Ceiling(duration.TotalHours);
@@ -57,9 +59,10 @@ public class ParkingFeeCalculator
                 startedHours -= blockHours;
             }
 
-            DateTime nightEndTime = session.EntryTime.Date.AddDays(1).AddHours(8);
-            bool isNightParking = session.EntryTime.TimeOfDay >= TimeSpan.FromHours(22) &&
-                                  session.ExitTime <= nightEndTime;
+            DateTime nightEndTime = session.EntryTime.Date.AddDays(1) .AddHours(8);
+
+            bool isNightParking = session.EntryTime.TimeOfDay >= TimeSpan.FromHours(22) && session.ExitTime <= nightEndTime;
+
             if (isNightParking)
             {
                 fee = Math.Min(fee, nightFlatRate);
@@ -77,12 +80,12 @@ public class ParkingFeeCalculator
 
             fee = isSubscriberFree ? 0m : fee * 0.5m;
         }
-
         if (session.TicketLost)
         {
             fee = Math.Max(fee, lostTicketMinimum);
         }
-
-        return fee;
+        decimal chargingFee = session.ChargedKwh * 3.50m;
+        fee += chargingFee;
+        return Math.Round(fee, 2, MidpointRounding.AwayFromZero);
     }
 }
