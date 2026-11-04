@@ -9,6 +9,12 @@ public class ParkingFeeCalculator
 
     public decimal Calculate(ParkingSession session)
     {
+        if (session.ExitTime < session.EntryTime)
+        {
+            throw new ArgumentException(
+                "Exit time must be after entry time.");
+        }
+
         TimeSpan parkingDuration = session.ExitTime - session.EntryTime;
 
         if (parkingDuration.TotalMinutes <= FreeParkingDurationInMinutes)
