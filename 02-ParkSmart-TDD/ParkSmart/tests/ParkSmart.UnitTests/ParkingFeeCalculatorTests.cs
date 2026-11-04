@@ -131,7 +131,22 @@ public class ParkingFeeCalculatorTests
     }
     
     
-    
+    [Theory]
+    [InlineData(VehicleType.Car, 5, 150)]
+    [InlineData(VehicleType.Car, 1800, 150)]
+    [InlineData(VehicleType.Motorcycle, 5, 75)]
+    [InlineData(VehicleType.Truck, 1800, 350)]
+    public void Calculate_LostTicket_AppliesMinimumFee(VehicleType vehicle, int minutes, decimal expectedFee)
+    {
+        ParkingSession session = CreateSession(minutes);
+        session.Vehicle = vehicle;
+        session.TicketLost = true;
+        ParkingFeeCalculator calculator = new ParkingFeeCalculator();
+        
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(expectedFee);
+    }
     
     
     
