@@ -42,15 +42,9 @@ public class PricingService
             customer.DateOfBirth,
             request.PickupAt);
 
-        decimal young = age is >= 21 and <= 24
-            ? Round(baseAmount * 0.15m)
-            : 0m;
+        decimal young = age is >= 21 and <= 24 ? Round(baseAmount * 0.15m) : 0m;
 
-        decimal durationPercent = days >= 14
-            ? 15m
-            : days >= 7
-                ? 10m
-                : 0m;
+        decimal durationPercent = days >= 14 ? 15m : days > 7 ? 10m : 0m;
 
         decimal loyaltyPercent = customer.LoyaltyTier switch
         {
@@ -63,31 +57,17 @@ public class PricingService
         if (durationPercent + loyaltyPercent > 25m)
             loyaltyPercent = 25m - durationPercent;
 
-        decimal durationDiscount = Round(
-            baseAmount * durationPercent / 100m);
+        decimal durationDiscount = Round(baseAmount * durationPercent / 100m);
 
-        decimal loyaltyDiscount = Round(
-            baseAmount * loyaltyPercent / 100m);
+        decimal loyaltyDiscount = Round(baseAmount * loyaltyPercent / 100m);
 
-        decimal promoDiscount = PromoDiscount(
-            request.PromoCode,
-            days,
-            vehicle.Category,
-            baseAmount);
+        decimal promoDiscount = PromoDiscount(request.PromoCode, days, vehicle.Category, baseAmount);
 
-        decimal maximumPromoDiscount = Round(
-            baseAmount * Math.Max(
-                0m,
-                25m - durationPercent - loyaltyPercent) / 100m);
+        decimal maximumPromoDiscount = Round(baseAmount * Math.Max(0m, 25m - durationPercent - loyaltyPercent) / 100m);
 
-        promoDiscount = Math.Min(
-            promoDiscount,
-            maximumPromoDiscount);
+        promoDiscount = Math.Min(promoDiscount, maximumPromoDiscount);
 
-        decimal insurance = InsuranceCost(
-            request.InsurancePlan,
-            vehicle.Category,
-            days);
+        decimal insurance = InsuranceCost(request.InsurancePlan, vehicle.Category, days);
 
         decimal drivers = DriverCost(
             customer.LoyaltyTier,
@@ -203,7 +183,7 @@ public class PricingService
     {
         int billable = additionalDrivers;
 
-        if (tier >= LoyaltyTier.Gold && billable > 0)
+        if (tier >= LoyaltyTier.Silver && billable > 0)
             billable--;
 
         return Round(100m * billable * days);
