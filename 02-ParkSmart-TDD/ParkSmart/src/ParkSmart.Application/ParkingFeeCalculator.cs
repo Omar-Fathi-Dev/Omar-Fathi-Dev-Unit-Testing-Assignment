@@ -8,6 +8,7 @@ public class ParkingFeeCalculator
     private const int FreeParkingDurationInMinutes = 15;
     private const int FridayFreeParkingDurationInMinutes = 120;
     private const int DailyBlockDurationInMinutes = 1440;
+    private const decimal ChargingRatePerKwh = 3.50m;
 
     public decimal Calculate(ParkingSession session)
     {
@@ -27,7 +28,7 @@ public class ParkingFeeCalculator
 
         if (!session.TicketLost && parkingDuration.TotalMinutes <= freeParkingDuration)
         {
-            return session.ChargedKwh * 3.50m;
+            return CalculateChargingFee(session.ChargedKwh);
         }
 
         (decimal hourlyRate, decimal dailyCap, decimal nightFlatRate, decimal lostTicketMinimum) =
@@ -61,9 +62,14 @@ public class ParkingFeeCalculator
             totalFee = Math.Max(totalFee, lostTicketMinimum);
         }
 
-        totalFee += session.ChargedKwh * 3.50m;
+        totalFee += CalculateChargingFee(session.ChargedKwh);
 
         return totalFee;
+    }
+
+    private static decimal CalculateChargingFee(decimal chargedKwh)
+    {
+        return chargedKwh * ChargingRatePerKwh;
     }
 
     private static int GetFreeParkingDuration(DateTime entryTime)
