@@ -17,7 +17,8 @@ public class ParkingFeeCalculator
 
         TimeSpan parkingDuration = session.ExitTime - session.EntryTime;
 
-        if (parkingDuration.TotalMinutes <= FreeParkingDurationInMinutes)
+        if (!session.TicketLost &&
+            parkingDuration.TotalMinutes <= FreeParkingDurationInMinutes)
         {
             return 0m;
         }
@@ -48,7 +49,14 @@ public class ParkingFeeCalculator
         {
             decimal nightFlatRate = GetNightFlatRate(session.Vehicle);
 
-            return Math.Min(totalFee, nightFlatRate);
+            totalFee = Math.Min(totalFee, nightFlatRate);
+        }
+
+        if (session.TicketLost)
+        {
+            decimal minimumFee = GetLostTicketMinimum(session.Vehicle);
+
+            totalFee = Math.Max(totalFee, minimumFee);
         }
 
         return totalFee;
@@ -72,6 +80,16 @@ public class ParkingFeeCalculator
             VehicleType.Motorcycle => 15m,
             VehicleType.Truck => 75m,
             _ => 30m
+        };
+    }
+
+    private static decimal GetLostTicketMinimum(VehicleType vehicle)
+    {
+        return vehicle switch
+        {
+            VehicleType.Motorcycle => 75m,
+            VehicleType.Truck => 300m,
+            _ => 150m
         };
     }
 
