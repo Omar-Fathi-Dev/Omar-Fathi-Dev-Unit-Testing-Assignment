@@ -919,7 +919,7 @@ public class BookingServiceTests
     
     [Fact]
     [Trait("Rule", "BR-10")]
-    public void CreateBooking_CustomerDoesNotExist_WithMoq_ThrowsCustomerNotFoundException()
+    public void CreateBooking_CustomerDoesNotExist_WithMoqThrowsCustomerNotFoundException()
     {
         BookingServiceTestFixture fixture = new();
 
@@ -948,7 +948,7 @@ public class BookingServiceTests
     
     [Fact]
     [Trait("Rule", "BR-14")]
-    public void CreateBooking_VehicleDoesNotExist_WithMoq_ThrowsVehicleNotFoundException()
+    public void CreateBooking_VehicleDoesNotExist_WithMoqThrowsVehicleNotFoundException()
     {
         BookingServiceTestFixture fixture = new();
 
@@ -980,7 +980,7 @@ public class BookingServiceTests
     
     [Theory]
     [AutoMoqData]
-    public void CreateBooking_CustomerDoesNotExist_WithAutoMoq_ThrowsCustomerNotFoundException(
+    public void CreateBooking_CustomerMissingWithAutoMoq_ThrowsNotFoundException(
         [Frozen] Mock<ICustomerRepository> customerRepository,
         BookingService sut)
     {
@@ -1028,7 +1028,7 @@ public class BookingServiceTests
     
     [Fact]
     [Trait("Requirement", "R4")]
-    public void ValidCustomerCustomization_CreatesCustomerThatMeetsBusinessRules()
+    public void ValidCustomerCustomization_CreatesCustomer_ThatMeetsBusinessRules()
     {
         Fixture fixture = new();
         fixture.Customize(new ValidCustomerCustomization());

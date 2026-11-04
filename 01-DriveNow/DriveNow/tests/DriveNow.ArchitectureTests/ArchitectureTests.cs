@@ -212,7 +212,9 @@ public class ArchitectureTests
                     method.GetCustomAttribute<TheoryAttribute>() != null;
 
                 if (hasFact || hasTheory)
-                    pattern.IsMatch(method.Name).Should().BeTrue();
+                    pattern.IsMatch(method.Name)
+                        .Should()
+                        .BeTrue($"Method '{method.Name}' does not follow the naming pattern");
             }
         }
     }
