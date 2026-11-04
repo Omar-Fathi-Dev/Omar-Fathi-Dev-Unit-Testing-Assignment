@@ -167,7 +167,17 @@ public class RentalMathTests
     
     
     
-    
+    [Fact]
+    [Trait("Rule", "BR-03")]
+    public void CalculateRentalDays_ExactlySixtyMinutesOverOneDay_ReturnsOneDay()
+    {
+        DateTime pickup = new(2026, 11, 1, 10, 0, 0);
+        DateTime returnAt = new(2026, 11, 2, 11, 0, 0);
+
+        int result = RentalMath.CalculateRentalDays(pickup, returnAt);
+
+        Assert.Equal(1, result);
+    }
     
     
     
