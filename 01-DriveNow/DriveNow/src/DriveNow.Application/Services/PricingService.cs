@@ -27,24 +27,17 @@ public class PricingService
         Vehicle vehicle,
         BookingRequest request)
     {
-        int days = RentalMath.CalculateRentalDays(
-            request.PickupAt,
-            request.ReturnAt);
+        int days = RentalMath.CalculateRentalDays(request.PickupAt, request.ReturnAt);
 
         decimal baseAmount = Round(vehicle.DailyRate * days);
 
-        decimal weekend = WeekendSurcharge(
-            vehicle.DailyRate,
-            request.PickupAt,
-            days);
+        decimal weekend = WeekendSurcharge(vehicle.DailyRate, request.PickupAt, days);
 
-        int age = RentalMath.CalculateAge(
-            customer.DateOfBirth,
-            request.PickupAt);
+        int age = RentalMath.CalculateAge(customer.DateOfBirth, request.PickupAt);
 
         decimal young = age is >= 21 and <= 24 ? Round(baseAmount * 0.15m) : 0m;
 
-        decimal durationPercent = days >= 14 ? 15m : days > 7 ? 10m : 0m;
+        decimal durationPercent = days >= 14 ? 15m : days >= 7 ? 10m : 0m;
 
         decimal loyaltyPercent = customer.LoyaltyTier switch
         {
