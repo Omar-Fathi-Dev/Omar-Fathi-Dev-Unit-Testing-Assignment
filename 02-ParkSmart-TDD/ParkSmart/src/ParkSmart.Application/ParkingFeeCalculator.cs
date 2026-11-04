@@ -8,10 +8,12 @@ public class ParkingFeeCalculator
     {
         if (session.ExitTime < session.EntryTime)
         {
-            throw new ArgumentException("Exit time must be after entry time.");
+            throw new ArgumentException(
+                "Exit time must be after entry time.");
         }
 
         TimeSpan duration = session.ExitTime - session.EntryTime;
+
         decimal hourlyRate;
         decimal dailyCap;
         decimal nightFlatRate;
@@ -40,12 +42,12 @@ public class ParkingFeeCalculator
                 lostTicketMinimum = 150m;
                 break;
         }
+        TimeSpan freePeriod = session.EntryTime.DayOfWeek == DayOfWeek.Friday ? TimeSpan.FromHours(2) : TimeSpan.FromMinutes(15);
 
-        if (duration <= TimeSpan.FromMinutes(15) && !session.TicketLost)
+        if (duration <= freePeriod && !session.TicketLost)
         {
             return 0m;
         }
-
         int startedHours = (int)Math.Ceiling(duration.TotalHours);
         decimal normalFee = 0m;
         while (startedHours > 0)
@@ -57,9 +59,10 @@ public class ParkingFeeCalculator
         }
 
         DateTime nightEndTime = session.EntryTime.Date.AddDays(1).AddHours(8);
-        bool isNightParking = session.EntryTime.TimeOfDay >= TimeSpan.FromHours(22) && session.ExitTime <= nightEndTime;
-        decimal fee = isNightParking ? Math.Min(normalFee, nightFlatRate) : normalFee;
 
+        bool isNightParking = session.EntryTime.TimeOfDay >= TimeSpan.FromHours(22) && session.ExitTime <= nightEndTime;
+
+        decimal fee = isNightParking ? Math.Min(normalFee, nightFlatRate) : normalFee;
         if (session.TicketLost)
         {
             fee = Math.Max(fee, lostTicketMinimum);
