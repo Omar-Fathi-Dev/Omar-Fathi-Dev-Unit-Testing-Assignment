@@ -585,6 +585,8 @@ public class PricingServiceTests
     }
     
     
+    
+    
     [Theory]
     [Trait("Rule", "BR-39")]
     [InlineData(LoyaltyTier.None, 1, 200)]
@@ -594,15 +596,9 @@ public class PricingServiceTests
     [InlineData(LoyaltyTier.Silver, 1, 200)]
     public void Calculate_AdditionalDrivers_ReturnsExpectedCost(LoyaltyTier tier,int additionalDrivers,decimal expected)
     {
-        Mock<IPromoCodeRepository> promoRepository =
-            new Mock<IPromoCodeRepository>();
-
-        PricingService sut = new PricingService(
-            promoRepository.Object,
-            TimeProvider.System);
-
+        Mock<IPromoCodeRepository> promoRepository = new Mock<IPromoCodeRepository>();
+        PricingService sut = new PricingService(promoRepository.Object, TimeProvider.System);
         DateTime pickup = new DateTime(2026, 11, 1, 10, 0, 0);
-
         Customer customer = new Customer
         {
             DateOfBirth = pickup.AddYears(-30),
@@ -623,7 +619,6 @@ public class PricingServiceTests
         };
 
         PriceBreakdown result = sut.Calculate(customer, vehicle, request);
-
         result.AdditionalDriversCost.Should().Be(expected);
     }
 
