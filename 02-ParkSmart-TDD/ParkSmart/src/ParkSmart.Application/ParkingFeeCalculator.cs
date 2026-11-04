@@ -8,8 +8,7 @@ public class ParkingFeeCalculator
     {
         if (session.ExitTime < session.EntryTime)
         {
-            throw new ArgumentException(
-                "Exit time must be after entry time.");
+            throw new ArgumentException("Exit time must be after entry time.");
         }
         
         TimeSpan duration = session.ExitTime - session.EntryTime;
@@ -18,7 +17,16 @@ public class ParkingFeeCalculator
         {
             return 0m;
         }
-        double startedHours = Math.Ceiling(duration.TotalHours);
-        return (decimal)startedHours * 10m;
+        int startedHours = (int)Math.Ceiling(duration.TotalHours);
+        decimal totalFee = 0m;
+        while (startedHours > 0)
+        {
+            int blockHours = Math.Min(startedHours, 24);
+            decimal blockFee = Math.Min(blockHours * 10m, 80m);
+            totalFee += blockFee;
+            startedHours -= blockHours;
+        }
+
+        return totalFee;
     }
 }
