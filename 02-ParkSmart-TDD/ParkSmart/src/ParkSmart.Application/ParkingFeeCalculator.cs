@@ -5,6 +5,7 @@ namespace ParkSmart.Application;
 public class ParkingFeeCalculator
 {
     private const int FreeParkingDurationInMinutes = 15;
+    private const int FridayFreeParkingDurationInMinutes = 120;
     private const int DailyBlockDurationInMinutes = 1440;
 
     public decimal Calculate(ParkingSession session)
@@ -17,8 +18,12 @@ public class ParkingFeeCalculator
 
         TimeSpan parkingDuration = session.ExitTime - session.EntryTime;
 
+        int freeParkingDuration = session.EntryTime.DayOfWeek == DayOfWeek.Friday
+            ? FridayFreeParkingDurationInMinutes
+            : FreeParkingDurationInMinutes;
+
         if (!session.TicketLost &&
-            parkingDuration.TotalMinutes <= FreeParkingDurationInMinutes)
+            parkingDuration.TotalMinutes <= freeParkingDuration)
         {
             return 0m;
         }
