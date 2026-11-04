@@ -22,26 +22,8 @@ public class ParkingFeeCalculator
             return 0m;
         }
 
-        decimal hourlyRate;
-        decimal dailyCap;
-
-        switch (session.Vehicle)
-        {
-            case VehicleType.Motorcycle:
-                hourlyRate = 5m;
-                dailyCap = 40m;
-                break;
-
-            case VehicleType.Truck:
-                hourlyRate = 25m;
-                dailyCap = 200m;
-                break;
-
-            default:
-                hourlyRate = 10m;
-                dailyCap = 80m;
-                break;
-        }
+        (decimal hourlyRate, decimal dailyCap) =
+            GetVehiclePricing(session.Vehicle);
 
         int remainingMinutes = (int)parkingDuration.TotalMinutes;
         decimal totalFee = 0m;
@@ -63,5 +45,16 @@ public class ParkingFeeCalculator
         }
 
         return totalFee;
+    }
+
+    private static (decimal HourlyRate, decimal DailyCap) GetVehiclePricing(
+        VehicleType vehicle)
+    {
+        return vehicle switch
+        {
+            VehicleType.Motorcycle => (5m, 40m),
+            VehicleType.Truck => (25m, 200m),
+            _ => (10m, 80m)
+        };
     }
 }
