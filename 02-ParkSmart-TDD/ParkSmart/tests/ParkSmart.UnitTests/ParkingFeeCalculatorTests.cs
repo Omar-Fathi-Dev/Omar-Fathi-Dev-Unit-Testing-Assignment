@@ -78,6 +78,21 @@ public class ParkingFeeCalculatorTests
     }
     
     
+    [Theory]
+    [InlineData(600, 80)]
+    [InlineData(1800, 140)]
+    [InlineData(2880, 160)]
+    [InlineData(2890, 170)]
+    public void Calculate_ParkingAcrossDailyBlocks_AppliesDailyCap(int durationInMinutes, decimal expectedFee)
+    {
+        ParkingFeeCalculator calculator = new();
+
+        ParkingSession session = CreateSession(durationInMinutes);
+
+        decimal result = calculator.Calculate(session);
+
+        result.Should().Be(expectedFee);
+    }
     
     
     
